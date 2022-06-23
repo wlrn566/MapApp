@@ -10,7 +10,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 
-import net.daum.android.map.MapViewEventListener;
 import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;
 
