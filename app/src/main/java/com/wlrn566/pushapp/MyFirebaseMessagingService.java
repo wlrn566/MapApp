@@ -1,5 +1,6 @@
 package com.wlrn566.pushapp;
 
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -8,8 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 
@@ -18,6 +17,7 @@ import androidx.core.app.NotificationCompat;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import com.wlrn566.pushapp.R;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
     private String TAG = getClass().getName();
@@ -78,14 +78,13 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         builder.setLargeIcon(bm);  // 매개변수로 Bitmap을 줘야한다.
 
         // 알림창 클릭 시 실행할 액티비티 -----------------------------------------------------------------------------------------
-        Intent intent = new Intent(this, MainActivity.class)
+        Intent intent = new Intent(this, SplashActivity.class)
                 .setAction(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LAUNCHER)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         // 잠시 보류시키는 Intent 객체
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
         builder.setContentIntent(pendingIntent);  // 클릭 시 보류한 Intent 호출
-
 
         //건축가에게 알림 객체 생성하도록
         Notification notification = builder.build();
