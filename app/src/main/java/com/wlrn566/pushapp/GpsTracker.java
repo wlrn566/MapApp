@@ -36,6 +36,7 @@ public class GpsTracker extends Service implements LocationListener {
     public Location getLocation() {
         try {
             locationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
+//            locationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
 
             boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
@@ -109,10 +110,8 @@ public class GpsTracker extends Service implements LocationListener {
         return longitude;
     }
 
-    public void stopUsingGPS()
-    {
-        if(locationManager != null)
-        {
+    public void stopUsingGPS() {
+        if (locationManager != null) {
             locationManager.removeUpdates(GpsTracker.this);
         }
     }
@@ -125,26 +124,18 @@ public class GpsTracker extends Service implements LocationListener {
 
     @Override
     public void onLocationChanged(@NonNull Location location) {
-
-    }
-
-    @Override
-    public void onLocationChanged(@NonNull List<Location> locations) {
-        LocationListener.super.onLocationChanged(locations);
+        Log.d("Location Changed", " = "+location);
     }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
-        LocationListener.super.onStatusChanged(provider, status, extras);
     }
 
     @Override
     public void onProviderEnabled(@NonNull String provider) {
-        LocationListener.super.onProviderEnabled(provider);
     }
 
     @Override
     public void onProviderDisabled(@NonNull String provider) {
-        LocationListener.super.onProviderDisabled(provider);
     }
 }

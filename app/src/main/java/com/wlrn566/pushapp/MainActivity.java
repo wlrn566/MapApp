@@ -12,6 +12,7 @@ import android.location.Geocoder;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Base64;
@@ -51,6 +52,9 @@ public class MainActivity extends AppCompatActivity {
     String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
             , Manifest.permission.ACCESS_COARSE_LOCATION};
 
+    private MapView mapView;
+    private ViewGroup mapViewContainer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,6 +68,11 @@ public class MainActivity extends AppCompatActivity {
         } else {
             checkRunTimePermission();
         }
+
+        // 지도 띄우기
+        mapView = new MapView(this);
+        mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
+        mapViewContainer.addView(mapView);
 
         TextView add_tv = (TextView) findViewById(R.id.add_tv);
         TextView lat_tv = (TextView) findViewById(R.id.lat_tv);
@@ -85,10 +94,37 @@ public class MainActivity extends AppCompatActivity {
 
                 Toast.makeText(MainActivity.this, "현재위치 \n위도 " + latitude + "\n경도 " + longitude, Toast.LENGTH_LONG).show();
 
+                setMarker(latitude, longitude);
             }
         });
 
         getAppKeyHash();
+    }
+
+    private void setMarker(double latitude, double longitude) {
+        // 중심점 변경
+        mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude), true);
+
+        // 줌 레벨 변경 - 낮을 수록 가까워짐
+        mapView.setZoomLevel(3, true);
+
+//         중심점 변경 + 줌 레벨 변경
+//        mapView.setMapCenterPointAndZoomLevel(MapPoint.mapPointWithGeoCoord(33.41, 126.52), 9, true);
+
+        // 줌 인
+        mapView.zoomIn(true);
+
+        // 줌 아웃
+        mapView.zoomOut(true);
+
+        MapPOIItem marker = new MapPOIItem();
+        marker.setItemName("Default Marker");
+        marker.setTag(0);
+        marker.setMapPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude));
+        marker.setMarkerType(MapPOIItem.MarkerType.BluePin); // 기본으로 제공하는 BluePin 마커 모양.
+        marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin); // 마커를 클릭했을때, 기본으로 제공하는 RedPin 마커 모양.
+
+        mapView.addPOIItem(marker);
     }
 
     void checkRunTimePermission() {
@@ -98,6 +134,8 @@ public class MainActivity extends AppCompatActivity {
         if (hasFineLocationPermission == PackageManager.PERMISSION_GRANTED && hasCoarseLocationPermission == PackageManager.PERMISSION_GRANTED) {
             // 가지고 있다면 위치값 가져올 수 있음
             Log.d(TAG, "PERMISSION_GRANTED");
+//            mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
+
         } else {  // 권한을 요청한적이 있는데 거부한적이 있음
             if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, REQUIRED_PERMISSIONS[0])) {  // 거부한 적 있을 때
                 Toast.makeText(MainActivity.this, "이 앱을 실행하려면 위치 접근 권한이 필요합니다.", Toast.LENGTH_LONG).show();  // 요청 이유
@@ -124,6 +162,8 @@ public class MainActivity extends AppCompatActivity {
             if (check_result) {
                 // 위치 값 가져오기 가능
                 Log.d(TAG, "permission success");
+//                mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
+
             } else {
                 // 거부된 권한이 있을 때
                 if (ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[0]) || ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[1])) {
@@ -136,7 +176,6 @@ public class MainActivity extends AppCompatActivity {
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
-
 
     public String getCurrentAddress(double latitude, double longitude) {
 
@@ -171,44 +210,6 @@ public class MainActivity extends AppCompatActivity {
         return address.getAddressLine(0).toString() + "\n";
 
     }
-
-//    // 현재 위치 업데이트
-//    @Override
-//    public void onCurrentLocationUpdate(MapView mapView, MapPoint mapPoint, float v) {
-//        MapPoint.GeoCoordinate mapPointGeo = mapPoint.getMapPointGeoCoord();  // 좌표 가져오기
-//        Log.i(TAG, String.format("MapView onCurrentLocationUpdate (%f,%f) accuracy (%f)", mapPointGeo.latitude, mapPointGeo.longitude, v));
-//        currentMapPoint = MapPoint.mapPointWithGeoCoord(mapPointGeo.latitude, mapPointGeo.longitude);  // 지도 중심에 넣을 현재 좌표
-//        mapView.setMapCenterPoint(currentMapPoint, true);
-//        // 현재 좌표 저장
-//        mCurrentLat = mapPointGeo.latitude;
-//        mCurrentLng = mapPointGeo.longitude;
-//        Log.d(TAG, "current lat = " + mCurrentLat + " current lng = " + mCurrentLng);
-//    }
-
-//    @Override
-//    public void onCurrentLocationDeviceHeadingUpdate(MapView mapView, float v) {
-//
-//    }
-//
-//    @Override
-//    public void onCurrentLocationUpdateFailed(MapView mapView) {
-//
-//    }
-//
-//    @Override
-//    public void onCurrentLocationUpdateCancelled(MapView mapView) {
-//
-//    }
-//
-//    @Override
-//    public void onReverseGeoCoderFoundAddress(MapReverseGeoCoder mapReverseGeoCoder, String s) {
-//
-//    }
-//
-//    @Override
-//    public void onReverseGeoCoderFailedToFindAddress(MapReverseGeoCoder mapReverseGeoCoder) {
-//
-//    }
 
     private void showDialogForLocationServiceSetting() {
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
@@ -256,7 +257,6 @@ public class MainActivity extends AppCompatActivity {
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
 
-
     @Override
     protected void onStart() {
         super.onStart();
@@ -280,6 +280,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         Log.d(TAG, "onStop");
+        mapViewContainer.removeView(mapView);
     }
 
     @Override
