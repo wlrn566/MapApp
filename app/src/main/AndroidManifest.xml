@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.wlrn566.pushapp">
+
     <!-- 푸쉬서비스를 위한 INTERNET 퍼미션 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -14,7 +15,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PushApp">
-
+        <service
+            android:name=".GpsTracker"
+            android:enabled="true"
+            android:exported="true"></service>
         <!-- firebase 서비스 추가 -->
         <service
             android:name=".MyFirebaseMessagingService"
@@ -28,19 +32,21 @@
         <activity
             android:name=".MainActivity"
             android:exported="true">
-            <!--            <intent-filter>-->
-            <!--                <action android:name="android.intent.action.MAIN" />-->
 
-            <!--                <category android:name="android.intent.category.LAUNCHER" />-->
-            <!--            </intent-filter>-->
+            <!-- <intent-filter> -->
+            <!-- <action android:name="android.intent.action.MAIN" /> -->
+
+
+            <!-- <category android:name="android.intent.category.LAUNCHER" /> -->
+            <!-- </intent-filter> -->
         </activity>
-
         <activity
             android:name=".SplashActivity"
             android:exported="true"
             android:theme="@style/SplashActivityTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -48,7 +54,6 @@
         <meta-data
             android:name="com.kakao.sdk.AppKey"
             android:value="8ad0e6b32226544a8a234de2d5f7f1c5" />
-
     </application>
 
 </manifest>
