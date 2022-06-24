@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_main);
 
-        // 권한 체크
+        // 권한  체크
         if (!checkLocationServiceStatus()) {  // GPS
             Log.d(TAG, "check Location Permission");
             showDialogForLocationServiceSetting();
