@@ -92,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
                 lat_tv.setText(String.valueOf(latitude));
                 lng_tv.setText(String.valueOf(longitude));
 
+                Log.d(TAG, "lat = "+latitude + " lng = " + longitude);
+
                 Toast.makeText(MainActivity.this, "현재위치 \n위도 " + latitude + "\n경도 " + longitude, Toast.LENGTH_LONG).show();
 
                 setMarker(latitude, longitude);
@@ -122,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         marker.setTag(0);
         marker.setMapPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude));
         marker.setMarkerType(MapPOIItem.MarkerType.BluePin); // 기본으로 제공하는 BluePin 마커 모양.
-        marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin); // 마커를 클릭했을때, 기본으로 제공하는 RedPin 마커 모양.
+//        marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin); // 마커를 클릭했을때, 기본으로 제공하는 RedPin 마커 모양.
 
         mapView.addPOIItem(marker);
     }
