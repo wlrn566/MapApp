@@ -36,12 +36,12 @@ public class GpsTracker extends Service implements LocationListener {
     public Location getLocation() {
         try {
             locationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
-//            locationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
 
             boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+            boolean isPassiveEnabled = locationManager.isProviderEnabled(LocationManager.PASSIVE_PROVIDER);
 
-            if (!isGPSEnabled && !isNetworkEnabled) {
+            if (!isGPSEnabled && !isNetworkEnabled &&!isPassiveEnabled) {
 
             } else {
 
@@ -86,10 +86,25 @@ public class GpsTracker extends Service implements LocationListener {
                         }
                     }
                 }
+
+                if (isPassiveEnabled) {
+                    if (location == null) {
+                        locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, MIN_TIME_BW_UPDATES, MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
+                        if (locationManager != null) {
+                            location = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+                            if (location != null) {
+                                latitude = location.getLatitude();
+                                longitude = location.getLongitude();
+                            }
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             Log.d("Error", "" + e.toString());
         }
+
+        Log.d("getAllProviders = ", String.valueOf(locationManager.getAllProviders()));
 
         return location;
     }

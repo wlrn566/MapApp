@@ -9,6 +9,8 @@ import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -42,32 +44,38 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity {
-
+public class MainActivity extends AppCompatActivity implements LocationListener {
     private String TAG = getClass().getName();
-    private GpsTracker gpsTracker;
-
-    private static final int GPS_ENABLE_REQUEST_CODE = 2001;
-    private static final int PERMISSIONS_REQUEST_CODE = 100;
+    private Location location;
+    double latitude, longitude;
+    private LocationManager locationManager;
+    private List<String> listProviders;
+    private static final int GPS_ENABLE_REQUEST_CODE = 2001, PERMISSIONS_REQUEST_CODE = 100;
     String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
             , Manifest.permission.ACCESS_COARSE_LOCATION};
-
     private MapView mapView;
     private ViewGroup mapViewContainer;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        Log.d(TAG, "onCreate");
-        setContentView(R.layout.activity_main);
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
 
         // 권한  체크
         if (!checkLocationServiceStatus()) {  // GPS
             Log.d(TAG, "check Location Permission");
             showDialogForLocationServiceSetting();
         } else {
-            checkRunTimePermission();
+//            checkRunTimePermission();
+            location = setLocationManager();
         }
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate");
+        setContentView(R.layout.activity_main);
 
         // 지도 띄우기
         mapView = new MapView(this);
@@ -78,21 +86,20 @@ public class MainActivity extends AppCompatActivity {
         TextView lat_tv = (TextView) findViewById(R.id.lat_tv);
         TextView lng_tv = (TextView) findViewById(R.id.lng_tv);
         Button btn = (Button) findViewById(R.id.btn);
+        Button fragment = (Button) findViewById(R.id.fragment);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                gpsTracker = new GpsTracker(MainActivity.this);
-
-                double latitude = gpsTracker.getLatitude();
-                double longitude = gpsTracker.getLongitude();
+                latitude = location.getLatitude();
+                longitude = location.getLongitude();
 
                 String address = getCurrentAddress(latitude, longitude);
                 add_tv.setText(address);
                 lat_tv.setText(String.valueOf(latitude));
                 lng_tv.setText(String.valueOf(longitude));
 
-                Log.d(TAG, "lat = "+latitude + " lng = " + longitude);
+                Log.d(TAG, "lat = " + latitude + " lng = " + longitude);
 
                 Toast.makeText(MainActivity.this, "현재위치 \n위도 " + latitude + "\n경도 " + longitude, Toast.LENGTH_LONG).show();
 
@@ -100,7 +107,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        getAppKeyHash();
+        fragment.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MainFragment mainFragment = new MainFragment();
+                getSupportFragmentManager().beginTransaction().replace(R.id.main, mainFragment, "map").commit();
+            }
+        });
     }
 
     private void setMarker(double latitude, double longitude) {
@@ -136,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
         if (hasFineLocationPermission == PackageManager.PERMISSION_GRANTED && hasCoarseLocationPermission == PackageManager.PERMISSION_GRANTED) {
             // 가지고 있다면 위치값 가져올 수 있음
             Log.d(TAG, "PERMISSION_GRANTED");
-//            mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
+            Log.d(TAG, "hasFineLocationPermission " + hasFineLocationPermission + " hasCoarseLocationPermission " + hasCoarseLocationPermission);
 
         } else {  // 권한을 요청한적이 있는데 거부한적이 있음
             if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, REQUIRED_PERMISSIONS[0])) {  // 거부한 적 있을 때
@@ -150,7 +163,8 @@ public class MainActivity extends AppCompatActivity {
 
     // checkRunTimePermission의 request 결과값
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         // 요청코드가 맞고 요청개수만큼 request 되었을 때
         if (requestCode == PERMISSIONS_REQUEST_CODE && grantResults.length == REQUIRED_PERMISSIONS.length) {
             boolean check_result = true;
@@ -250,7 +264,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
         }
-
     }
 
     public boolean checkLocationServiceStatus() {
@@ -259,12 +272,6 @@ public class MainActivity extends AppCompatActivity {
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Log.d(TAG, "onStart");
-
-    }
 
     @Override
     protected void onResume() {
@@ -289,6 +296,108 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
+    }
+
+
+    private Location setLocationManager() {
+//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+//                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//            // 권한이 없으면 재 요청
+//            if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)
+//                    && ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)){
+//                // 권한요청 거절 한 적이 있을 때
+//                ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);
+//            } else{
+//                // 처음 요청
+//                ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);
+//            }
+//            return;
+//        }
+
+        // 권한 요청
+        checkRunTimePermission();
+
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+        Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        if (location != null) {
+            double lat = location.getLatitude();
+            double lng = location.getLongitude();
+            Log.d(TAG, "lat = " + lat + " lng = " + lng);
+        }
+
+        location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        if (location != null) {
+            double lat = location.getLatitude();
+            double lng = location.getLongitude();
+            Log.d(TAG, "lat = " + lat + " lng = " + lng);
+        }
+
+        location = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+        if (location != null) {
+            double lat = location.getLatitude();
+            double lng = location.getLongitude();
+            Log.d(TAG, "lat = " + lat + " lng = " + lng);
+        }
+
+        listProviders = locationManager.getAllProviders();
+        boolean[] isEnable = new boolean[3];
+        for (int i = 0; i < listProviders.size(); i++) {
+            if (listProviders.get(i).equals(LocationManager.GPS_PROVIDER)) {
+                isEnable[0] = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+            } else if (listProviders.get(i).equals(LocationManager.NETWORK_PROVIDER)) {
+                isEnable[1] = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+            } else if (listProviders.get(i).equals(LocationManager.PASSIVE_PROVIDER)) {
+                isEnable[1] = locationManager.isProviderEnabled(LocationManager.PASSIVE_PROVIDER);
+                locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 0, 0, this);
+            }
+
+        }
+        Log.d(TAG, listProviders.get(0) + " / " + String.valueOf(isEnable[0]));
+        Log.d(TAG, listProviders.get(1) + " / " + String.valueOf(isEnable[1]));
+        Log.d(TAG, listProviders.get(2) + " / " + String.valueOf(isEnable[2]));
+
+        return location;
+    }
+
+    @Override
+    public void onLocationChanged(@NonNull Location location) {
+        latitude = 0.0;
+        longitude = 0.0;
+
+        if (location.getProvider().equals(LocationManager.GPS_PROVIDER)) {
+            latitude = location.getLatitude();
+            longitude = location.getLongitude();
+            Log.d(TAG, "GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
+        }
+        if (location.getProvider().equals(LocationManager.NETWORK_PROVIDER)) {
+            latitude = location.getLatitude();
+            longitude = location.getLongitude();
+            Log.d(TAG, "GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
+        }
+        if (location.getProvider().equals(LocationManager.PASSIVE_PROVIDER)) {
+            latitude = location.getLatitude();
+            longitude = location.getLongitude();
+            Log.d(TAG, "GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
+        }
+
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+        LocationListener.super.onStatusChanged(provider, status, extras);
+    }
+
+    @Override
+    public void onProviderEnabled(@NonNull String provider) {
+        LocationListener.super.onProviderEnabled(provider);
+    }
+
+    @Override
+    public void onProviderDisabled(@NonNull String provider) {
+        LocationListener.super.onProviderDisabled(provider);
     }
 
     // 키해시 값

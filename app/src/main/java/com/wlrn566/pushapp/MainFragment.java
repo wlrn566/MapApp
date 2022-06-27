@@ -1,5 +1,6 @@
 package com.wlrn566.pushapp;
 
+import android.location.LocationManager;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -13,7 +14,7 @@ import android.view.ViewGroup;
 import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;
 
-public class MainFragment extends Fragment {
+public class MainFragment extends Fragment implements MapView.CurrentLocationEventListener{
     private String TAG = getClass().getName();
     View rootView;
 
@@ -35,20 +36,22 @@ public class MainFragment extends Fragment {
 
         mapViewContainer.addView(mapView);
 
+        mapView.setCurrentLocationEventListener(this);
+
+        mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
+
         // 중심점 변경
-        mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(37.53737528, 127.00557633), true);
-
-        // 줌 레벨 변경
-        mapView.setZoomLevel(7, true);
-
-        // 중심점 변경 + 줌 레벨 변경
-        mapView.setMapCenterPointAndZoomLevel(MapPoint.mapPointWithGeoCoord(33.41, 126.52), 9, true);
-
-        // 줌 인
-        mapView.zoomIn(true);
-
-        // 줌 아웃
-        mapView.zoomOut(true);
+//        mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(37.53737528, 127.00557633), true);
+//
+//        // 줌 레벨 변경
+//        mapView.setZoomLevel(7, true);
+//
+//
+//        // 줌 인
+//        mapView.zoomIn(true);
+//
+//        // 줌 아웃
+//        mapView.zoomOut(true);
 
         return rootView;
     }
@@ -81,5 +84,25 @@ public class MainFragment extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
+    }
+
+    @Override
+    public void onCurrentLocationUpdate(MapView mapView, MapPoint mapPoint, float v) {
+        Log.d(TAG,"update = "+mapPoint);
+    }
+
+    @Override
+    public void onCurrentLocationDeviceHeadingUpdate(MapView mapView, float v) {
+
+    }
+
+    @Override
+    public void onCurrentLocationUpdateFailed(MapView mapView) {
+
+    }
+
+    @Override
+    public void onCurrentLocationUpdateCancelled(MapView mapView) {
+
     }
 }
