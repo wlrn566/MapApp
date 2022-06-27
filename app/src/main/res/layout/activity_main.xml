@@ -24,10 +24,10 @@
         android:layout_height="wrap_content" />
 
     <Button
-        android:id="@+id/btn"
+        android:id="@+id/setCenter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Button" />
+        android:text="지도 중심 이동" />
     <Button
         android:id="@+id/fragment"
         android:layout_width="wrap_content"

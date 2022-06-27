@@ -12,11 +12,8 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.provider.Settings;
-import android.util.AttributeSet;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
@@ -32,19 +29,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+
 import net.daum.mf.map.api.MapPOIItem;
 import net.daum.mf.map.api.MapPoint;
-import net.daum.mf.map.api.MapReverseGeoCoder;
 import net.daum.mf.map.api.MapView;
 
 import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity implements LocationListener {
+public class MainActivity extends AppCompatActivity implements LocationListener, MapView.POIItemEventListener {
     private String TAG = getClass().getName();
     private Location location;
     double latitude, longitude;
@@ -55,6 +53,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             , Manifest.permission.ACCESS_COARSE_LOCATION};
     private MapView mapView;
     private ViewGroup mapViewContainer;
+    private TextView add_tv, lat_tv, lng_tv;
+    private ArrayList<MapPOIItem> markerList = new ArrayList<>();
+    private MapPOIItem marker;
+
 
     @Override
     protected void onStart() {
@@ -82,28 +84,16 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
         mapViewContainer.addView(mapView);
 
-        TextView add_tv = (TextView) findViewById(R.id.add_tv);
-        TextView lat_tv = (TextView) findViewById(R.id.lat_tv);
-        TextView lng_tv = (TextView) findViewById(R.id.lng_tv);
-        Button btn = (Button) findViewById(R.id.btn);
+        add_tv = (TextView) findViewById(R.id.add_tv);
+        lat_tv = (TextView) findViewById(R.id.lat_tv);
+        lng_tv = (TextView) findViewById(R.id.lng_tv);
+        Button setCenter = (Button) findViewById(R.id.setCenter);
         Button fragment = (Button) findViewById(R.id.fragment);
-        btn.setOnClickListener(new View.OnClickListener() {
+
+        setCenter.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-                latitude = location.getLatitude();
-                longitude = location.getLongitude();
-
-                String address = getCurrentAddress(latitude, longitude);
-                add_tv.setText(address);
-                lat_tv.setText(String.valueOf(latitude));
-                lng_tv.setText(String.valueOf(longitude));
-
-                Log.d(TAG, "lat = " + latitude + " lng = " + longitude);
-
-                Toast.makeText(MainActivity.this, "현재위치 \n위도 " + latitude + "\n경도 " + longitude, Toast.LENGTH_LONG).show();
-
-                setMarker(latitude, longitude);
+                mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude), true);
             }
         });
 
@@ -116,30 +106,69 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         });
     }
 
+    private void setInfo(double latitude, double longitude) {
+        String address = getCurrentAddress(latitude, longitude);
+        add_tv.setText("현재 주소 : "+address);
+        lat_tv.setText("현재 위도 : "+String.valueOf(latitude));
+        lng_tv.setText("현재 경도 : "+String.valueOf(longitude));
+
+        Log.d(TAG, "lat = " + latitude + " lng = " + longitude);
+//        Toast.makeText(MainActivity.this, "현재위치 \n위도 " + latitude + "\n경도 " + longitude, Toast.LENGTH_LONG).show();
+
+        // 기존에 마커가 찍혀져 있으면 지우고 다시 생성
+        if (markerList.size() > 1) {
+            for (int i = 0; i < markerList.size(); i++) {
+                mapView.removePOIItem(markerList.get(i));
+            }
+            updateMarker(latitude, longitude);
+        } else {
+            setMarker(latitude, longitude);
+        }
+    }
+
     private void setMarker(double latitude, double longitude) {
+        Log.d(TAG, "setMarker");
         // 중심점 변경
         mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude), true);
 
         // 줌 레벨 변경 - 낮을 수록 가까워짐
         mapView.setZoomLevel(3, true);
 
-//         중심점 변경 + 줌 레벨 변경
-//        mapView.setMapCenterPointAndZoomLevel(MapPoint.mapPointWithGeoCoord(33.41, 126.52), 9, true);
-
         // 줌 인
         mapView.zoomIn(true);
 
         // 줌 아웃
         mapView.zoomOut(true);
-
-        MapPOIItem marker = new MapPOIItem();
+        marker = new MapPOIItem();
         marker.setItemName("Default Marker");
         marker.setTag(0);
         marker.setMapPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude));
         marker.setMarkerType(MapPOIItem.MarkerType.BluePin); // 기본으로 제공하는 BluePin 마커 모양.
 //        marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin); // 마커를 클릭했을때, 기본으로 제공하는 RedPin 마커 모양.
 
+        // 마커 관리를 위해 리스트에 추가
         mapView.addPOIItem(marker);
+        markerList.add(marker);
+    }
+
+    public void updateMarker(double latitude, double longitude) {
+        Log.d(TAG, "marker update success");
+
+        // 줌 인
+        mapView.zoomIn(true);
+
+        // 줌 아웃
+        mapView.zoomOut(true);
+        marker = new MapPOIItem();
+        marker.setItemName("Default Marker");
+        marker.setTag(0);
+        marker.setMapPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude));
+        marker.setMarkerType(MapPOIItem.MarkerType.BluePin); // 기본으로 제공하는 BluePin 마커 모양.
+//        marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin); // 마커를 클릭했을때, 기본으로 제공하는 RedPin 마커 모양.
+
+        // 마커 관리를 위해 리스트에 추가
+        mapView.addPOIItem(marker);
+        markerList.add(marker);
     }
 
     void checkRunTimePermission() {
@@ -300,25 +329,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
 
     private Location setLocationManager() {
-//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-//                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//            // 권한이 없으면 재 요청
-//            if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)
-//                    && ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)){
-//                // 권한요청 거절 한 적이 있을 때
-//                ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);
-//            } else{
-//                // 처음 요청
-//                ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);
-//            }
-//            return;
-//        }
-
         // 권한 요청
         checkRunTimePermission();
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
+        // 위치를 얻는 provider 에 따라 분기처리
         Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         if (location != null) {
             double lat = location.getLatitude();
@@ -364,39 +380,39 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     @Override
     public void onLocationChanged(@NonNull Location location) {
-        latitude = 0.0;
-        longitude = 0.0;
-
         if (location.getProvider().equals(LocationManager.GPS_PROVIDER)) {
             latitude = location.getLatitude();
             longitude = location.getLongitude();
-            Log.d(TAG, "GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
+            Log.d(TAG, "GPS_PROVIDER GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
         }
         if (location.getProvider().equals(LocationManager.NETWORK_PROVIDER)) {
             latitude = location.getLatitude();
             longitude = location.getLongitude();
-            Log.d(TAG, "GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
+            Log.d(TAG, "NETWORK_PROVIDER GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
         }
         if (location.getProvider().equals(LocationManager.PASSIVE_PROVIDER)) {
             latitude = location.getLatitude();
             longitude = location.getLongitude();
-            Log.d(TAG, "GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
+            Log.d(TAG, "PASSIVE_PROVIDER GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
         }
-
+        setInfo(latitude, longitude);
     }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
+        Log.d(TAG, "onStatusChanged provider = " + provider + ", status = " + status + ", Bundle extras = " + extras);
         LocationListener.super.onStatusChanged(provider, status, extras);
     }
 
     @Override
     public void onProviderEnabled(@NonNull String provider) {
+        Log.d(TAG, "onProviderEnabled = " + provider);
         LocationListener.super.onProviderEnabled(provider);
     }
 
     @Override
     public void onProviderDisabled(@NonNull String provider) {
+        Log.d(TAG, "onProviderDisabled = " + provider);
         LocationListener.super.onProviderDisabled(provider);
     }
 
@@ -417,4 +433,23 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         }
     }
 
+    @Override
+    public void onPOIItemSelected(MapView mapView, MapPOIItem mapPOIItem) {
+
+    }
+
+    @Override
+    public void onCalloutBalloonOfPOIItemTouched(MapView mapView, MapPOIItem mapPOIItem) {
+
+    }
+
+    @Override
+    public void onCalloutBalloonOfPOIItemTouched(MapView mapView, MapPOIItem mapPOIItem, MapPOIItem.CalloutBalloonButtonType calloutBalloonButtonType) {
+
+    }
+
+    @Override
+    public void onDraggablePOIItemMoved(MapView mapView, MapPOIItem mapPOIItem, MapPoint mapPoint) {
+
+    }
 }
