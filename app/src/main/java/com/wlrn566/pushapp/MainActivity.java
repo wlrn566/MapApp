@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     private MapView mapView;
     private ViewGroup mapViewContainer;
     private TextView add_tv, lat_tv, lng_tv;
+    private TextView provider_tv1, provider_tv2, provider_tv3;
     private ArrayList<MapPOIItem> markerList = new ArrayList<>();
     private MapPOIItem marker;
 
@@ -84,9 +85,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
         mapViewContainer.addView(mapView);
 
-        add_tv = (TextView) findViewById(R.id.add_tv);
-        lat_tv = (TextView) findViewById(R.id.lat_tv);
-        lng_tv = (TextView) findViewById(R.id.lng_tv);
+        add_tv = findViewById(R.id.add_tv);
+        provider_tv1 = findViewById(R.id.provider_tv1);
+        provider_tv2 = findViewById(R.id.provider_tv2);
+        provider_tv3 = findViewById(R.id.provider_tv3);
+        lat_tv = findViewById(R.id.lat_tv);
+        lng_tv = findViewById(R.id.lng_tv);
         Button setCenter = (Button) findViewById(R.id.setCenter);
         Button fragment = (Button) findViewById(R.id.fragment);
 
@@ -108,9 +112,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
 
     private void setInfo(double latitude, double longitude) {
         String address = getCurrentAddress(latitude, longitude);
-        add_tv.setText("현재 주소 : "+address);
-        lat_tv.setText("현재 위도 : "+String.valueOf(latitude));
-        lng_tv.setText("현재 경도 : "+String.valueOf(longitude));
+        add_tv.setText("현재 주소 : " + address);
+        lat_tv.setText("현재 위도 : " + String.valueOf(latitude));
+        lng_tv.setText("현재 경도 : " + String.valueOf(longitude));
 
         Log.d(TAG, "lat = " + latitude + " lng = " + longitude);
 //        Toast.makeText(MainActivity.this, "현재위치 \n위도 " + latitude + "\n경도 " + longitude, Toast.LENGTH_LONG).show();
@@ -374,6 +378,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         Log.d(TAG, listProviders.get(0) + " / " + String.valueOf(isEnable[0]));
         Log.d(TAG, listProviders.get(1) + " / " + String.valueOf(isEnable[1]));
         Log.d(TAG, listProviders.get(2) + " / " + String.valueOf(isEnable[2]));
+
+        provider_tv1.setText("GPS_PROVIDER : " + isEnable[0]);
+        provider_tv2.setText("NETWORK_PROVIDER : " + isEnable[1]);
+        provider_tv3.setText("PASSIVE_PROVIDER : " + isEnable[2]);
 
         return location;
     }
