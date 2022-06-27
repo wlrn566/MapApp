@@ -42,19 +42,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity implements LocationListener, MapView.POIItemEventListener {
+public class MainActivity extends AppCompatActivity implements LocationListener {
     private String TAG = getClass().getName();
     private Location location;
-    double latitude, longitude;
     private LocationManager locationManager;
     private List<String> listProviders;
     private static final int GPS_ENABLE_REQUEST_CODE = 2001, PERMISSIONS_REQUEST_CODE = 100;
-    String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
+    private long backPressedTime = 0;
+    private String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
             , Manifest.permission.ACCESS_COARSE_LOCATION};
     private MapView mapView;
     private ViewGroup mapViewContainer;
     private TextView add_tv, lat_tv, lng_tv;
     private TextView provider_tv1, provider_tv2, provider_tv3;
+    private double latitude, longitude;
     private ArrayList<MapPOIItem> markerList = new ArrayList<>();
     private MapPOIItem marker;
 
@@ -98,6 +99,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
             @Override
             public void onClick(View view) {
                 mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude), true);
+                mapView.setZoomLevel(1, true);
             }
         });
 
@@ -158,11 +160,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     public void updateMarker(double latitude, double longitude) {
         Log.d(TAG, "marker update success");
 
-        // 줌 인
-        mapView.zoomIn(true);
-
-        // 줌 아웃
-        mapView.zoomOut(true);
         marker = new MapPOIItem();
         marker.setItemName("Default Marker");
         marker.setTag(0);
@@ -227,14 +224,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     }
 
     public String getCurrentAddress(double latitude, double longitude) {
-
-        //지오코더 - GPS를 주소로 변환
+        //Geocoder - GPS를 주소로 변환
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
 
         List<Address> addresses;
-
         try {
-
             addresses = geocoder.getFromLocation(
                     latitude,
                     longitude,
@@ -246,18 +240,13 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         } catch (IllegalArgumentException illegalArgumentException) {
             Toast.makeText(this, "wrong GPS coordinate", Toast.LENGTH_LONG).show();
             return "잘못된 GPS 좌표";
-
         }
-
         if (addresses == null || addresses.size() == 0) {
             Toast.makeText(this, "address undetected", Toast.LENGTH_LONG).show();
             return "주소 미발견";
-
         }
-
         Address address = addresses.get(0);
-        return address.getAddressLine(0).toString() + "\n";
-
+        return address.getAddressLine(0).toString();
     }
 
     private void showDialogForLocationServiceSetting() {
@@ -442,22 +431,17 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     }
 
     @Override
-    public void onPOIItemSelected(MapView mapView, MapPOIItem mapPOIItem) {
-
-    }
-
-    @Override
-    public void onCalloutBalloonOfPOIItemTouched(MapView mapView, MapPOIItem mapPOIItem) {
-
-    }
-
-    @Override
-    public void onCalloutBalloonOfPOIItemTouched(MapView mapView, MapPOIItem mapPOIItem, MapPOIItem.CalloutBalloonButtonType calloutBalloonButtonType) {
-
-    }
-
-    @Override
-    public void onDraggablePOIItemMoved(MapView mapView, MapPOIItem mapPOIItem, MapPoint mapPoint) {
-
+    public void onBackPressed() {
+        // 뒤로가기 키를 누른 후 2초가 지났으면 Toast 출력
+        if (System.currentTimeMillis() > backPressedTime + 2000) {
+            backPressedTime = System.currentTimeMillis();
+            Toast toast = Toast.makeText(this, "한번 더 누르시면 종료됩니다.", Toast.LENGTH_SHORT);
+            toast.show();
+            return;
+        }
+        // 뒤로가기 키를 누른 후 2초가 안지났으면 종료
+        if(System.currentTimeMillis() <= backPressedTime + 2000){
+            finish();
+        }
     }
 }
