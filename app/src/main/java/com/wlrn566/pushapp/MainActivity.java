@@ -44,26 +44,23 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     private String TAG = getClass().getName();
-    private Location location;
-    private LocationManager locationManager;
-    private List<String> listProviders;
-    private static final int GPS_ENABLE_REQUEST_CODE = 2001, PERMISSIONS_REQUEST_CODE = 100;
     private long backPressedTime = 0;
     private String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
             , Manifest.permission.ACCESS_COARSE_LOCATION};
-    private MapView mapView;
-    private ViewGroup mapViewContainer;
-    private TextView add_tv, lat_tv, lng_tv;
-    private TextView provider_tv1, provider_tv2, provider_tv3;
-    private double latitude, longitude;
-    private ArrayList<MapPOIItem> markerList = new ArrayList<>();
-    private MapPOIItem marker;
-    boolean click_b = false;
+    private static final int GPS_ENABLE_REQUEST_CODE = 2001, PERMISSIONS_REQUEST_CODE = 100;
+
+    Button gps;
 
     @Override
     protected void onStart() {
         super.onStart();
         Log.d(TAG, "onStart");
+    }
+
+    public class Constants {
+        static final int LOCATION_SERVICE_ID = 175;
+        static final String ACTION_START_LOCATION_SERVICE = "startLocationService";
+        static final String ACTION_STOP_LOCATION_SERVICE = "stopLocationService";
     }
 
     @Override
@@ -72,119 +69,21 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_main);
 
-        // 지도 띄우기
-        mapView = new MapView(this);
-        mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
-        mapViewContainer.addView(mapView);
-
-        add_tv = findViewById(R.id.add_tv);
-        provider_tv1 = findViewById(R.id.provider_tv1);
-        provider_tv2 = findViewById(R.id.provider_tv2);
-        provider_tv3 = findViewById(R.id.provider_tv3);
-        lat_tv = findViewById(R.id.lat_tv);
-        lng_tv = findViewById(R.id.lng_tv);
-        Button gps = (Button) findViewById(R.id.gps);
-        Button setCenter = (Button) findViewById(R.id.setCenter);
-        Button fragment = (Button) findViewById(R.id.fragment);
-
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-
+        gps = findViewById(R.id.gps);
         gps.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!click_b) {
-                    click_b = true;
-                    gps.setText("ON");
-                    // 권한  체크
-                    if (!checkLocationServiceStatus()) {  // GPS
-                        Log.d(TAG, "check Location Permission");
-                        showDialogForLocationServiceSetting();
-                    } else {
-                        checkRunTimePermission();
-                    }
-                    Log.d(TAG, "gps start");
-                    // GSP 제공자의 변경에 따른 콜백 리스터 등록 (제공자, 갱신 최소시간, 갱신 최소거리, 리스너)
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 1, mLocationListener);
-                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000, 1, mLocationListener);
+                if (!checkLocationServiceStatus()) {  // GPS
+                    Log.d(TAG, "check Location Permission");
+                    showDialogForLocationServiceSetting();
                 } else {
-                    Log.d(TAG, "gps end");
-                    gps.setText("OFF");
-                    click_b = false;
-                    locationManager.removeUpdates(mLocationListener);
+                    checkRunTimePermission();
                 }
             }
-
-        });
-        setCenter.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude), true);
-                mapView.setZoomLevel(1, true);
-            }
         });
 
-        fragment.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                MainFragment mainFragment = new MainFragment();
-                getSupportFragmentManager().beginTransaction().replace(R.id.main, mainFragment, "map").commit();
-            }
-        });
-    }
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
-    private void setInfo(double longitude, double latitude) {
-        String address = getCurrentAddress(latitude, longitude);
-        add_tv.setText("현재 주소 : " + address);
-        lat_tv.setText("현재 위도 : " + String.valueOf(longitude));
-        lng_tv.setText("현재 경도 : " + String.valueOf(latitude));
-
-        // 기존에 마커가 찍혀져 있으면 지우고 다시 생성
-        if (markerList.size() > 1) {
-            for (int i = 0; i < markerList.size(); i++) {
-                mapView.removePOIItem(markerList.get(i));
-            }
-            updateMarker(latitude, longitude);
-        } else {
-            setMarker(latitude, longitude);
-        }
-    }
-
-    private void setMarker(double latitude, double longitude) {
-        Log.d(TAG, "setMarker");
-        // 중심점 변경
-        mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude), true);
-
-        // 줌 레벨 변경 - 낮을 수록 가까워짐
-        mapView.setZoomLevel(3, true);
-
-        // 줌 인
-        mapView.zoomIn(true);
-
-        // 줌 아웃
-        mapView.zoomOut(true);
-        marker = new MapPOIItem();
-        marker.setItemName("Default Marker");
-        marker.setTag(0);
-        marker.setMapPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude));
-        marker.setMarkerType(MapPOIItem.MarkerType.BluePin); // 기본으로 제공하는 BluePin 마커 모양.
-
-        // 마커 관리를 위해 리스트에 추가
-        mapView.addPOIItem(marker);
-        markerList.add(marker);
-    }
-
-    public void updateMarker(double latitude, double longitude) {
-        Log.d(TAG, "marker update success");
-
-        marker = new MapPOIItem();
-        marker.setItemName("Default Marker");
-        marker.setTag(0);
-        marker.setMapPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude));
-        marker.setMarkerType(MapPOIItem.MarkerType.BluePin); // 기본으로 제공하는 BluePin 마커 모양.
-
-        // 마커 관리를 위해 리스트에 추가
-        mapView.addPOIItem(marker);
-        markerList.add(marker);
     }
 
     void checkRunTimePermission() {
@@ -195,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
             // 가지고 있다면 위치값 가져올 수 있음
             Log.d(TAG, "PERMISSION_GRANTED");
             Log.d(TAG, "hasFineLocationPermission " + hasFineLocationPermission + " hasCoarseLocationPermission " + hasCoarseLocationPermission);
-
+            startLocation();
         } else {  // 권한을 요청한적이 있는데 거부한적이 있음
             if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, REQUIRED_PERMISSIONS[0])) {  // 거부한 적 있을 때
                 Toast.makeText(MainActivity.this, "이 앱을 실행하려면 위치 접근 권한이 필요합니다.", Toast.LENGTH_LONG).show();  // 요청 이유
@@ -223,6 +122,7 @@ public class MainActivity extends AppCompatActivity {
             if (check_result) {
                 // 위치 값 가져오기 가능
                 Log.d(TAG, "permission success");
+                startLocation();
             } else {
                 // 거부된 권한이 있을 때
                 if (ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[0]) || ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[1])) {
@@ -234,6 +134,12 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    private void startLocation() {
+        Intent intent = new Intent(getApplicationContext(), GpsService.class);
+        intent.setAction(Constants.ACTION_START_LOCATION_SERVICE);
+        startService(intent);
     }
 
     public String getCurrentAddress(double latitude, double longitude) {
@@ -324,7 +230,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         Log.d(TAG, "onStop");
-        mapViewContainer.removeView(mapView);
     }
 
     @Override
@@ -333,128 +238,6 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onDestroy");
     }
 
-    // Location 콜백 리스너 클래스
-    private final LocationListener mLocationListener = new LocationListener() {
-        @Override
-        public void onLocationChanged(@NonNull Location location) {
-            double longitude = location.getLongitude();  // 위도
-            double latitude = location.getLatitude();  // 경도
-            float accuracy = location.getAccuracy();
-            String provider = location.getProvider();
-            System.out.println("제공자 : " + provider + " / 위도 : " + longitude + " / 경도 : " + latitude + " / 정확도 : " + accuracy);
-
-            setInfo(longitude, latitude);
-        }
-
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {
-            System.out.println("onStatusChanged -> provider : " + provider + " / status : " + status + " / Bundle extras : " + extras);
-        }
-
-        @Override
-        public void onProviderEnabled(@NonNull String provider) {
-            System.out.println("onProviderEnabled : " + provider);
-        }
-
-        @Override
-        public void onProviderDisabled(@NonNull String provider) {
-            System.out.println("onProviderDisabled : " + provider);
-        }
-    };
-
-
-    // 액티비티 자체에 LocationListener 등록 시
-//    private Location setLocationManager() {
-//        // 권한 요청
-//        checkRunTimePermission();
-//
-//        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//
-//        // 위치를 얻는 provider 에 따라 분기처리
-//        Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-//        if (location != null) {
-//            double lat = location.getLatitude();
-//            double lng = location.getLongitude();
-//            Log.d(TAG, "lat = " + lat + " lng = " + lng);
-//        }
-//
-//        location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-//        if (location != null) {
-//            double lat = location.getLatitude();
-//            double lng = location.getLongitude();
-//            Log.d(TAG, "lat = " + lat + " lng = " + lng);
-//        }
-//
-//        location = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
-//        if (location != null) {
-//            double lat = location.getLatitude();
-//            double lng = location.getLongitude();
-//            Log.d(TAG, "lat = " + lat + " lng = " + lng);
-//        }
-//
-//        listProviders = locationManager.getAllProviders();
-//        boolean[] isEnable = new boolean[3];
-//        for (int i = 0; i < listProviders.size(); i++) {
-//            if (listProviders.get(i).equals(LocationManager.GPS_PROVIDER)) {
-//                isEnable[0] = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-//                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
-//            } else if (listProviders.get(i).equals(LocationManager.NETWORK_PROVIDER)) {
-//                isEnable[1] = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-//                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
-//            } else if (listProviders.get(i).equals(LocationManager.PASSIVE_PROVIDER)) {
-//                isEnable[1] = locationManager.isProviderEnabled(LocationManager.PASSIVE_PROVIDER);
-//                locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 0, 0, this);
-//            }
-//
-//        }
-//        Log.d(TAG, listProviders.get(0) + " / " + String.valueOf(isEnable[0]));
-//        Log.d(TAG, listProviders.get(1) + " / " + String.valueOf(isEnable[1]));
-//        Log.d(TAG, listProviders.get(2) + " / " + String.valueOf(isEnable[2]));
-//
-//        provider_tv1.setText("GPS_PROVIDER : " + isEnable[0]);
-//        provider_tv2.setText("NETWORK_PROVIDER : " + isEnable[1]);
-//        provider_tv3.setText("PASSIVE_PROVIDER : " + isEnable[2]);
-//
-//        return location;
-//    }
-
-//    @Override
-//    public void onLocationChanged(@NonNull Location location) {
-//        if (location.getProvider().equals(LocationManager.GPS_PROVIDER)) {
-//            latitude = location.getLatitude();
-//            longitude = location.getLongitude();
-//            Log.d(TAG, "GPS_PROVIDER GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
-//        }
-//        if (location.getProvider().equals(LocationManager.NETWORK_PROVIDER)) {
-//            latitude = location.getLatitude();
-//            longitude = location.getLongitude();
-//            Log.d(TAG, "NETWORK_PROVIDER GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
-//        }
-//        if (location.getProvider().equals(LocationManager.PASSIVE_PROVIDER)) {
-//            latitude = location.getLatitude();
-//            longitude = location.getLongitude();
-//            Log.d(TAG, "PASSIVE_PROVIDER GPS = " + Double.toString(latitude) + " / " + Double.toString(longitude));
-//        }
-//        setInfo(latitude, longitude);
-//    }
-//
-//    @Override
-//    public void onStatusChanged(String provider, int status, Bundle extras) {
-//        Log.d(TAG, "onStatusChanged provider = " + provider + ", status = " + status + ", Bundle extras = " + extras);
-//        LocationListener.super.onStatusChanged(provider, status, extras);
-//    }
-//
-//    @Override
-//    public void onProviderEnabled(@NonNull String provider) {
-//        Log.d(TAG, "onProviderEnabled = " + provider);
-//        LocationListener.super.onProviderEnabled(provider);
-//    }
-//
-//    @Override
-//    public void onProviderDisabled(@NonNull String provider) {
-//        Log.d(TAG, "onProviderDisabled = " + provider);
-//        LocationListener.super.onProviderDisabled(provider);
-//    }
 
     // 키해시 값
     private void getAppKeyHash() {
