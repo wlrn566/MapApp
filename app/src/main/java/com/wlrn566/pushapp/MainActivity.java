@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
             , Manifest.permission.ACCESS_COARSE_LOCATION};
     private static final int GPS_ENABLE_REQUEST_CODE = 2001, PERMISSIONS_REQUEST_CODE = 100;
-
+    boolean click_b = false;
     Button gps;
 
     @Override
@@ -73,13 +73,25 @@ public class MainActivity extends AppCompatActivity {
         gps.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!checkLocationServiceStatus()) {  // GPS
-                    Log.d(TAG, "check Location Permission");
-                    showDialogForLocationServiceSetting();
-                } else {
-                    checkRunTimePermission();
+                if (!click_b) {
+                    click_b = true;
+                    gps.setText("ON");
+                    if (!checkLocationServiceStatus()) {  // GPS
+                        Log.d(TAG, "check Location Permission");
+                        showDialogForLocationServiceSetting();
+                    } else {
+                        checkRunTimePermission();
+                    }
+                }else{
+                    gps.setText("OFF");
+                    click_b = false;
+                    Intent intent = new Intent(getApplicationContext(), GpsService.class);
+                    intent.setAction(Constants.ACTION_STOP_LOCATION_SERVICE);
+                    startService(intent);
                 }
             }
+
+
         });
 
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
