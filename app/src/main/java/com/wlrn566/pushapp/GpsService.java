@@ -10,9 +10,11 @@ import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.LocationRequest;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -22,6 +24,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.google.android.gms.location.LocationAvailability;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
 
 public class GpsService extends Service {
     private double latitude, longitude;
@@ -127,6 +130,8 @@ public class GpsService extends Service {
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(message))  /* 알림 내용 개행 지원 */
                 .setAutoCancel(true)  /* 클릭 시 알림 삭제 */
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);  /* 중요도 */
+
+
 
         //Oreo 버전(API26 버전)이상에서는 알림시에 NotificationChannel 이라는 개념이 필수 구성요소가 됨.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -256,6 +261,7 @@ public class GpsService extends Service {
         builder.setAutoCancel(false);
         builder.setPriority(NotificationCompat.PRIORITY_MAX);  // 중요도
 
+
         //Oreo 버전(API26 버전)이상에서는 알림시에 NotificationChannel 이라는 개념이 필수 구성요소가 됨.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (notificationManager != null && notificationManager.getNotificationChannel(channelId) == null) {
@@ -271,23 +277,25 @@ public class GpsService extends Service {
     }
 
     // Google gps
-//    private LocationCallback mLocationCallback = new LocationCallback() {
-//        @Override
-//        public void onLocationAvailability(@NonNull LocationAvailability locationAvailability) {
-//            super.onLocationAvailability(locationAvailability);
-//        }
-//
-//        @Override
-//        public void onLocationResult(@NonNull LocationResult locationResult) {
-//            super.onLocationResult(locationResult);
-//            if (locationResult != null && locationResult.getLastLocation() != null) {
-//                double latitude = locationResult.getLastLocation().getLatitude();
-//                double longitude = locationResult.getLastLocation().getLongitude();
-//                String provider = locationResult.getLastLocation().getProvider();
-//                float accuracy = locationResult.getLastLocation().getAccuracy();
-//                Log.d(TAG, "제공자 : " + provider + " / 위도 : " + latitude + " / 경도 : " + longitude + " / 정확도 : " + accuracy);
-//
-//            }
-//        }
-//    };
+    private LocationCallback mLocationCallback = new LocationCallback() {
+        @Override
+        public void onLocationAvailability(@NonNull LocationAvailability locationAvailability) {
+            super.onLocationAvailability(locationAvailability);
+        }
+
+        @Override
+        public void onLocationResult(@NonNull LocationResult locationResult) {
+            super.onLocationResult(locationResult);
+            if (locationResult != null && locationResult.getLastLocation() != null) {
+                double latitude = locationResult.getLastLocation().getLatitude();
+                double longitude = locationResult.getLastLocation().getLongitude();
+                String provider = locationResult.getLastLocation().getProvider();
+                float accuracy = locationResult.getLastLocation().getAccuracy();
+                Log.d(TAG, "제공자 : " + provider + " / 위도 : " + latitude + " / 경도 : " + longitude + " / 정확도 : " + accuracy);
+
+            }
+        }
+    };
+
+
 }

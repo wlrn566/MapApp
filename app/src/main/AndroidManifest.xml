@@ -27,7 +27,8 @@
             android:name=".GpsTracker"
             android:enabled="true"
             android:exported="true"
-            tools:ignore="Instantiatable" /> <!-- firebase 서비스 추가 -->
+            tools:ignore="Instantiatable" />
+        <!-- firebase 서비스 추가 -->
         <service
             android:name=".MyFirebaseMessagingService"
             android:enabled="true"
