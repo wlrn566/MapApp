@@ -67,4 +67,7 @@ dependencies {
     // 카카오맵
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation files('libs/libDaumMapAndroid.jar')
+
+    // google gps
+    implementation('com.google.android.gms:play-services-location:20.0.0')
 }

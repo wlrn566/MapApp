@@ -53,8 +53,7 @@ public class MainActivity2 extends AppCompatActivity {
             , Manifest.permission.ACCESS_COARSE_LOCATION};
     private MapView mapView;
     private ViewGroup mapViewContainer;
-    private TextView add_tv, lat_tv, lng_tv, accuracy_tv;
-    private TextView provider_tv;
+    private TextView provider_tv, add_tv, lat_tv, lng_tv, accuracy_tv;
     private double latitude, longitude;
     private ArrayList<MapPOIItem> markerList = new ArrayList<>();
     private MapPOIItem marker;
@@ -82,18 +81,18 @@ public class MainActivity2 extends AppCompatActivity {
         lat_tv = findViewById(R.id.lat_tv);
         lng_tv = findViewById(R.id.lng_tv);
         accuracy_tv = findViewById(R.id.accuracy_tv);
-        Button gps = (Button) findViewById(R.id.gps);
-        Button setCenter = (Button) findViewById(R.id.setCenter);
-        Button fragment = (Button) findViewById(R.id.fragment);
+        Button gps_btn = (Button) findViewById(R.id.gps_btn);
+        Button setCenter_btn = (Button) findViewById(R.id.setCenter_btn);
+        Button fragment_btn = (Button) findViewById(R.id.fragment_btn);
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
-        gps.setOnClickListener(new View.OnClickListener() {
+        gps_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (!click_b) {
                     click_b = true;
-                    gps.setText("ON");
+                    gps_btn.setText("ON");
                     // 권한  체크
                     if (!checkLocationServiceStatus()) {  // GPS
                         Log.d(TAG, "check Location Permission");
@@ -107,14 +106,14 @@ public class MainActivity2 extends AppCompatActivity {
                     locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000, 1, mLocationListener);
                 } else {
                     Log.d(TAG, "gps end");
-                    gps.setText("OFF");
+                    gps_btn.setText("OFF");
                     click_b = false;
                     locationManager.removeUpdates(mLocationListener);
                 }
             }
 
         });
-        setCenter.setOnClickListener(new View.OnClickListener() {
+        setCenter_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Log.d(TAG, "center latitude : " + latitude + " / longitude : " + longitude);
@@ -123,7 +122,7 @@ public class MainActivity2 extends AppCompatActivity {
             }
         });
 
-        fragment.setOnClickListener(new View.OnClickListener() {
+        fragment_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 MainFragment mainFragment = new MainFragment();
