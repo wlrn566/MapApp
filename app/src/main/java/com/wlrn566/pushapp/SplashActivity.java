@@ -1,6 +1,5 @@
 package com.wlrn566.pushapp;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
@@ -24,7 +23,7 @@ public class SplashActivity extends AppCompatActivity {
             public void run() {
                 Log.d(TAG, "App Loading");
                 // splash 후 연결 할 액티비티
-                startActivity(new Intent(getApplicationContext(), MainActivity.class));
+                startActivity(new Intent(getApplicationContext(), MainActivity_use_bindService.class));
                 finish();
             }
         }, 2000);

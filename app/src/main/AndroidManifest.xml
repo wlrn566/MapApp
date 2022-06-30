@@ -19,7 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PushApp">
         <service
-            android:name=".GpsService"
+            android:name=".FusedLocationService_use_bindService"
             android:enabled="true"
             android:foregroundServiceType="location"
             android:exported="true"></service>
@@ -39,8 +39,8 @@
         </service>
 
         <activity
-            android:name=".MainActivity"
-            android:parentActivityName=".MainActivity"
+            android:name=".MainActivity_use_bindService"
+            android:parentActivityName=".MainActivity_use_bindService"
             android:exported="true">
 
             <!-- <intent-filter> -->

@@ -10,23 +10,15 @@ import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.location.LocationRequest;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.google.android.gms.location.LocationAvailability;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
-
-public class GpsService extends Service {
+public class LocationManagerService extends Service {
     private double latitude, longitude;
     private String provider;
     private float accuracy;
@@ -43,10 +35,6 @@ public class GpsService extends Service {
     private final LocationListener mLocationListener = new LocationListener() {
         @Override
         public void onLocationChanged(@NonNull Location location) {
-//            latitude = location.getLatitude();  // 위도
-//            longitude = location.getLongitude();  // 경도
-//            accuracy = location.getAccuracy();
-//            provider = location.getProvider();
             String provider = location.getProvider();  // 제공자
             double latitude = location.getLatitude();  // 위도
             double longitude = location.getLongitude();  // 경도
@@ -72,47 +60,13 @@ public class GpsService extends Service {
         }
     };
 
-//    // 알림 없이 위치만 갱신
-//    public final LocationListener mLocationUpdateListener = new LocationListener() {
-//        @Override
-//        public void onLocationChanged(@NonNull Location location) {
-//            String provider = location.getProvider();  // 제공자
-//            double latitude = location.getLatitude();  // 위도
-//            double longitude = location.getLongitude();  // 경도
-//            float accuracy = location.getAccuracy();  // 정확도
-//
-//            Log.d(TAG, "Update -> 제공자 : " + provider + " / 위도 : " + latitude + " / 경도 : " + longitude + " / 정확도 : " + accuracy);
-//
-//            // set
-//            setProvider(provider);
-//            setLatitude(latitude);
-//            setLongitude(longitude);
-//            setAccuracy(accuracy);
-//        }
-//
-//        @Override
-//        public void onStatusChanged(String provider, int status, Bundle extras) {
-//            Log.d(TAG, "onStatusChanged -> provider : " + provider + " / status : " + status + " / Bundle extras : " + extras);
-//        }
-//
-//        @Override
-//        public void onProviderEnabled(@NonNull String provider) {
-//            System.out.println("onProviderEnabled : " + provider);
-//        }
-//
-//        @Override
-//        public void onProviderDisabled(@NonNull String provider) {
-//            System.out.println("onProviderDisabled : " + provider);
-//        }
-//    };
-
     private void sendNotification(double latitude, double longitude, float accuracy, String provider) {
         String message = "제공자 : " + provider + "\n" + "위도 : " + latitude + "\n" + "경도 : " + longitude + "\n" + "정확도 : " + accuracy;
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         String channelId = "location_update_notification_channel";
         String channelName = "Location Service";
         // 알림창 클릭 시 실행할 액티비티 -----------------------------------------------------------------------------------------
-        Intent intent = new Intent(this, MainActivity.class)
+        Intent intent = new Intent(this, MainActivity_use_bindService.class)
                 .setAction(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LAUNCHER)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -121,7 +75,7 @@ public class GpsService extends Service {
         intent.putExtra("accuracy", accuracy);
         intent.putExtra("provider", provider);
 //        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);   // 브로드캐스트리시브로 데이터 넘기기 (실패)
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId);
         builder.setContentIntent(pendingIntent)  /* 클릭 시 Intent 호출 */
                 .setSmallIcon(R.mipmap.ic_launcher)  /* 알림 아이콘 (상단) */
@@ -130,8 +84,6 @@ public class GpsService extends Service {
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(message))  /* 알림 내용 개행 지원 */
                 .setAutoCancel(true)  /* 클릭 시 알림 삭제 */
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);  /* 중요도 */
-
-
 
         //Oreo 버전(API26 버전)이상에서는 알림시에 NotificationChannel 이라는 개념이 필수 구성요소가 됨.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -156,85 +108,36 @@ public class GpsService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        Log.d(TAG, "GpsService onStartCommand");
+        Log.d(TAG, "LocationManagerService onStartCommand");
         if (intent != null) {
             String action = intent.getAction();
             if (action != null) {
-                if (action.equals(MainActivity.Constants.ACTION_START_LOCATION_SERVICE)) {
+                if (action.equals(MainActivity_use_bindService.Constants.ACTION_START_LOCATION_SERVICE)) {
                     startLocation();
-                } else if (action.equals(MainActivity.Constants.ACTION_STOP_LOCATION_SERVICE)) {
+                } else if (action.equals(MainActivity_use_bindService.Constants.ACTION_STOP_LOCATION_SERVICE)) {
                     stopLocation();
                 }
-//                else if (action.equals(MainActivity.Constants.ACTION_UPDATE_LOCATION_SERVICE)) {
-//                    updateLocation();
-//                }
             }
         }
-//        return super.onStartCommand(intent, flags, startId);
         return START_STICKY;
     }
 
     private void startLocation() {
-        Log.d(TAG, "GpsService start");
+        Log.d(TAG, "LocationManagerService start");
         // GSP 제공자의 변경에 따른 콜백 리스너 등록 (제공자, 갱신 최소시간, 갱신 최소거리, 리스너)
         try {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 1, mLocationListener);
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 1, mLocationListener);
-//            setNotification();
         } catch (SecurityException e) {
             Log.d(TAG, "error = " + e);
         }
     }
 
     private void stopLocation() {
-        Log.d(TAG, "GpsService stop");
+        Log.d(TAG, "LocationManagerService stop");
         locationManager.removeUpdates(mLocationListener);
-//        locationManager.removeUpdates(mLocationUpdateListener);
     }
 
-//    public void updateLocation() {
-//        Log.d(TAG, "GpsService update");
-//        try {
-//            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 1, mLocationUpdateListener);
-//            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 1, mLocationUpdateListener);
-//        } catch (SecurityException e) {
-//            Log.d(TAG, "error = " + e);
-//        }
-//    }
-//
-
-
-    public double getLatitude() {
-        return latitude;
-    }
-
-    public void setLatitude(double latitude) {
-        this.latitude = latitude;
-    }
-
-    public double getLongitude() {
-        return longitude;
-    }
-
-    public void setLongitude(double longitude) {
-        this.longitude = longitude;
-    }
-
-    public String getProvider() {
-        return provider;
-    }
-
-    public void setProvider(String provider) {
-        this.provider = provider;
-    }
-
-    public float getAccuracy() {
-        return accuracy;
-    }
-
-    public void setAccuracy(float accuracy) {
-        this.accuracy = accuracy;
-    }
 
     private void setNotification() {
         String message = "Location Service On";
@@ -242,7 +145,7 @@ public class GpsService extends Service {
         String channelId = "location_notification_channel";
         String channelName = "Location Service";
         // 알림창 클릭 시 실행할 액티비티 -----------------------------------------------------------------------------------------
-        Intent intent = new Intent(this, MainActivity.class)
+        Intent intent = new Intent(this, MainActivity_use_bindService.class)
                 .setAction(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LAUNCHER)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -275,27 +178,5 @@ public class GpsService extends Service {
         // 앱과 상호작용 하고 있는지(포어) 없는지(백) 으로 구분
         startForeground(1, builder.build());
     }
-
-    // Google gps
-    private LocationCallback mLocationCallback = new LocationCallback() {
-        @Override
-        public void onLocationAvailability(@NonNull LocationAvailability locationAvailability) {
-            super.onLocationAvailability(locationAvailability);
-        }
-
-        @Override
-        public void onLocationResult(@NonNull LocationResult locationResult) {
-            super.onLocationResult(locationResult);
-            if (locationResult != null && locationResult.getLastLocation() != null) {
-                double latitude = locationResult.getLastLocation().getLatitude();
-                double longitude = locationResult.getLastLocation().getLongitude();
-                String provider = locationResult.getLastLocation().getProvider();
-                float accuracy = locationResult.getLastLocation().getAccuracy();
-                Log.d(TAG, "제공자 : " + provider + " / 위도 : " + latitude + " / 경도 : " + longitude + " / 정확도 : " + accuracy);
-
-            }
-        }
-    };
-
 
 }
