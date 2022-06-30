@@ -36,7 +36,7 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.Locale;
 
-public class MainActivity_use_bindService extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity2 extends AppCompatActivity implements View.OnClickListener {
     private String TAG = getClass().getName();
     private long backPressedTime = 0;
     private String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
@@ -92,7 +92,7 @@ public class MainActivity_use_bindService extends AppCompatActivity implements V
         accuracy_tv = findViewById(R.id.accuracy_tv);
         gps_btn = findViewById(R.id.gps_btn);
         gps_btn.setOnClickListener(this);
-        if (isGpsServiceRunning(FusedLocationService_use_bindService.class)) {  // 알림으로 들어왔을 때 Gps 멈춰줌(알림 중지)
+        if (isGpsServiceRunning(FusedLocationService2.class)) {  // 알림으로 들어왔을 때 Gps 멈춰줌(알림 중지)
             gps_btn.setText("STOP");
             stopLocation();
 //            updateLocation();
@@ -120,13 +120,13 @@ public class MainActivity_use_bindService extends AppCompatActivity implements V
     }
 
     private void startLocation() {
-        Intent intent = new Intent(getApplicationContext(), FusedLocationService_use_bindService.class);
+        Intent intent = new Intent(getApplicationContext(), FusedLocationService2.class);
         intent.setAction(Constants.ACTION_START_LOCATION_SERVICE);
         startService(intent);
     }
 
     private void stopLocation() {
-        Intent intent = new Intent(getApplicationContext(), FusedLocationService_use_bindService.class);
+        Intent intent = new Intent(getApplicationContext(), FusedLocationService2.class);
         intent.setAction(Constants.ACTION_STOP_LOCATION_SERVICE);
         startService(intent);
         stopService(intent);
@@ -221,8 +221,8 @@ public class MainActivity_use_bindService extends AppCompatActivity implements V
         switch (view.getId()) {
             case R.id.gps_btn:
                 Log.d(TAG, "click");
-                Log.d(TAG, "isGpsServiceRunning ? " + isGpsServiceRunning(FusedLocationService_use_bindService.class));
-                if (isGpsServiceRunning(FusedLocationService_use_bindService.class)) {  // Gps 사용중일 때
+                Log.d(TAG, "isGpsServiceRunning ? " + isGpsServiceRunning(FusedLocationService2.class));
+                if (isGpsServiceRunning(FusedLocationService2.class)) {  // Gps 사용중일 때
                     gps_btn.setText("OFF");
                     stopLocation();
                 } else {  // Gps 껐을 떄
@@ -255,8 +255,8 @@ public class MainActivity_use_bindService extends AppCompatActivity implements V
 
     void checkRunTimePermission() {
         // 위치 권한 있는지 확인하기
-        int hasFineLocationPermission = ContextCompat.checkSelfPermission(MainActivity_use_bindService.this, Manifest.permission.ACCESS_FINE_LOCATION);
-        int hasCoarseLocationPermission = ContextCompat.checkSelfPermission(MainActivity_use_bindService.this, Manifest.permission.ACCESS_COARSE_LOCATION);
+        int hasFineLocationPermission = ContextCompat.checkSelfPermission(MainActivity2.this, Manifest.permission.ACCESS_FINE_LOCATION);
+        int hasCoarseLocationPermission = ContextCompat.checkSelfPermission(MainActivity2.this, Manifest.permission.ACCESS_COARSE_LOCATION);
         if (hasFineLocationPermission == PackageManager.PERMISSION_GRANTED && hasCoarseLocationPermission == PackageManager.PERMISSION_GRANTED
         ) {
             // 가지고 있다면 위치값 가져올 수 있음
@@ -264,11 +264,11 @@ public class MainActivity_use_bindService extends AppCompatActivity implements V
             Log.d(TAG, "hasFineLocationPermission : " + hasFineLocationPermission + " hasCoarseLocationPermission : " + hasCoarseLocationPermission);
             startLocation();
         } else {  // 권한을 요청한적이 있는데 거부한적이 있음
-            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity_use_bindService.this, REQUIRED_PERMISSIONS[0])) {  // 거부한 적 있을 때
-                Toast.makeText(MainActivity_use_bindService.this, "이 앱을 실행하려면 위치 접근 권한이 필요합니다.", Toast.LENGTH_LONG).show();  // 요청 이유
-                ActivityCompat.requestPermissions(MainActivity_use_bindService.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
+            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity2.this, REQUIRED_PERMISSIONS[0])) {  // 거부한 적 있을 때
+                Toast.makeText(MainActivity2.this, "이 앱을 실행하려면 위치 접근 권한이 필요합니다.", Toast.LENGTH_LONG).show();  // 요청 이유
+                ActivityCompat.requestPermissions(MainActivity2.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
             } else {  // 처음 요청 시
-                ActivityCompat.requestPermissions(MainActivity_use_bindService.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
+                ActivityCompat.requestPermissions(MainActivity2.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
             }
         }
     }
@@ -292,14 +292,14 @@ public class MainActivity_use_bindService extends AppCompatActivity implements V
                 Log.d(TAG, "permission success");
                 startLocation();
             } else {
-                ActivityCompat.requestPermissions(MainActivity_use_bindService.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
+                ActivityCompat.requestPermissions(MainActivity2.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
 
                 // 거부된 권한이 있을 때
                 if (ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[0]) || ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[1]) || ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[2])) {
-                    Toast.makeText(MainActivity_use_bindService.this, "권한이 거부 되었습니다. 다시 실행해주세요", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity2.this, "권한이 거부 되었습니다. 다시 실행해주세요", Toast.LENGTH_LONG).show();
                     finish();
                 } else {
-                    Toast.makeText(MainActivity_use_bindService.this, "권한이 거부 되었습니다. 다시 실행해주세요", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity2.this, "권한이 거부 되었습니다. 다시 실행해주세요", Toast.LENGTH_LONG).show();
                 }
             }
         }
@@ -307,7 +307,7 @@ public class MainActivity_use_bindService extends AppCompatActivity implements V
     }
 
     private void showDialogForLocationServiceSetting() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity_use_bindService.this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity2.this);
         builder.setTitle("위치 서비스 비활성화");
         builder.setMessage("앱을 사용하기 위해 위치 서비스가 필요합니다.");
         builder.setCancelable(true);

@@ -3,9 +3,13 @@ package com.wlrn566.pushapp;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
@@ -13,6 +17,11 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.provider.Settings;
 import android.util.Base64;
 import android.util.Log;
@@ -28,7 +37,9 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;
 
 import java.io.IOException;
@@ -36,7 +47,7 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.Locale;
 
-public class MainActivity_use_startService extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private String TAG = getClass().getName();
     private long backPressedTime = 0;
     private String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
@@ -47,17 +58,17 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
     private double longitude;
     private float accuracy;
     private String provider;
+
     private TextView provider_tv, add_tv, lat_tv, lng_tv, accuracy_tv;
     private Button gps_btn;
-
     private MapView mapView;
     private ViewGroup mapViewContainer;
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Log.d(TAG, "onStart");
-    }
+    private BroadcastReceiver mBroadcastReceiver;
+
+    // startService / bindService
+    // startService : 액티비티와 서비스 간에 통신을 하지 않음 (ex. 액티비티->서비스 시작->서비스 결과 알림표시 끝)
+    // bindService : 액티비티와 서비스 간에 통신 가능 (ex. 액티비티->서비스 시작->서비스의 결과값을 주기적으로 액티비티에 전달)
 
     public class Constants {
         static final int LOCATION_SERVICE_ID = 175;
@@ -66,11 +77,17 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
         static final String ACTION_UPDATE_LOCATION_SERVICE = "updateLocationService";
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_main);
+
+        // updateLocation 이면 브로드캐스트로 위치값을 받아서 UI에 뿌림
+        mBroadcastReceiver = new BroadcastReceiver();  // 선언
+        IntentFilter filter = new IntentFilter("update");  // 필터
+        registerReceiver(mBroadcastReceiver, filter);  // 등록
 
         // 알림창에서 값 가져오기
         Intent intent = getIntent();
@@ -92,17 +109,13 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
         accuracy_tv = findViewById(R.id.accuracy_tv);
         gps_btn = findViewById(R.id.gps_btn);
         gps_btn.setOnClickListener(this);
-        if (isGpsServiceRunning(FusedLocationService_use_startService.class)) {  // 알림으로 들어왔을 때 Gps 멈춰줌(알림 중지)
-            gps_btn.setText("STOP");
-            stopLocation();
-//            updateLocation();
+        if (isGpsServiceRunning(FusedLocationService.class)) {  // 알림으로 들어왔을 때
+            gps_btn.setText("ON");
+            updateLocation();  // 실시간으로 지도에 위치 띄우기
         } else {  // 처음 실행 또는 알림이 아닌 직접 들어왔을 때
             gps_btn.setText("OFF");
         }
     }
-
-
-
 
     @SuppressLint("SetTextI18n")
     private void setPage() {
@@ -117,37 +130,31 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
         mapView = new MapView(this);
         mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
         mapViewContainer.addView(mapView);
+        setCenter();
     }
 
     private void startLocation() {
-        Intent intent = new Intent(getApplicationContext(), FusedLocationService_use_startService.class);
+        Intent intent = new Intent(getApplicationContext(), FusedLocationService.class);
         intent.setAction(Constants.ACTION_START_LOCATION_SERVICE);
         startService(intent);
     }
 
     private void stopLocation() {
-        Intent intent = new Intent(getApplicationContext(), FusedLocationService_use_startService.class);
+        Intent intent = new Intent(getApplicationContext(), FusedLocationService.class);
         intent.setAction(Constants.ACTION_STOP_LOCATION_SERVICE);
         startService(intent);
         stopService(intent);
+
+        // 리시버 등록해제
+        unregisterReceiver(mBroadcastReceiver);
     }
 
-//    // 실시간으로 지도를 움직이기 위해 update 데이터 가져옴
-//    private void updateLocation() {
-//        Intent intent = new Intent(getApplicationContext(), LocationManagerService.class);
-//        stopService(intent);
-//        intent.setAction(Constants.ACTION_UPDATE_LOCATION_SERVICE);
-//        startService(intent);
-//
-////        if (isGpsServiceRunning(LocationManagerService.class)) {
-////            LocationManagerService gpsService = new LocationManagerService();
-////            provider = gpsService.getProvider();
-////            latitude = gpsService.getLatitude();
-////            longitude = gpsService.getLongitude();
-////            accuracy = gpsService.getAccuracy();
-////            Log.d(TAG, "update -> provider = " + provider + " / latitude = " + latitude + " / longitude = " + longitude + " / accuracy = " + accuracy);
-////        }
-//    }
+    private void updateLocation() {
+        Intent intent = new Intent(getApplicationContext(), FusedLocationService.class);
+        intent.setAction(Constants.ACTION_UPDATE_LOCATION_SERVICE);
+        startService(intent);
+    }
+
 
     public String getCurrentAddress(double latitude, double longitude) {
         //Geocoder - GPS를 주소로 변환
@@ -189,6 +196,11 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
         }
         return false;
     }
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
+    }
 
     @Override
     protected void onResume() {
@@ -221,8 +233,8 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
         switch (view.getId()) {
             case R.id.gps_btn:
                 Log.d(TAG, "click");
-                Log.d(TAG, "isGpsServiceRunning ? " + isGpsServiceRunning(FusedLocationService_use_startService.class));
-                if (isGpsServiceRunning(FusedLocationService_use_startService.class)) {  // Gps 사용중일 때
+                Log.d(TAG, "isGpsServiceRunning ? " + isGpsServiceRunning(FusedLocationService.class));
+                if (isGpsServiceRunning(FusedLocationService.class)) {  // Gps 사용중일 때
                     gps_btn.setText("OFF");
                     stopLocation();
                 } else {  // Gps 껐을 떄
@@ -255,8 +267,8 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
 
     void checkRunTimePermission() {
         // 위치 권한 있는지 확인하기
-        int hasFineLocationPermission = ContextCompat.checkSelfPermission(MainActivity_use_startService.this, Manifest.permission.ACCESS_FINE_LOCATION);
-        int hasCoarseLocationPermission = ContextCompat.checkSelfPermission(MainActivity_use_startService.this, Manifest.permission.ACCESS_COARSE_LOCATION);
+        int hasFineLocationPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION);
+        int hasCoarseLocationPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION);
         if (hasFineLocationPermission == PackageManager.PERMISSION_GRANTED && hasCoarseLocationPermission == PackageManager.PERMISSION_GRANTED
         ) {
             // 가지고 있다면 위치값 가져올 수 있음
@@ -264,11 +276,11 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
             Log.d(TAG, "hasFineLocationPermission : " + hasFineLocationPermission + " hasCoarseLocationPermission : " + hasCoarseLocationPermission);
             startLocation();
         } else {  // 권한을 요청한적이 있는데 거부한적이 있음
-            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity_use_startService.this, REQUIRED_PERMISSIONS[0])) {  // 거부한 적 있을 때
-                Toast.makeText(MainActivity_use_startService.this, "이 앱을 실행하려면 위치 접근 권한이 필요합니다.", Toast.LENGTH_LONG).show();  // 요청 이유
-                ActivityCompat.requestPermissions(MainActivity_use_startService.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
+            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, REQUIRED_PERMISSIONS[0])) {  // 거부한 적 있을 때
+                Toast.makeText(MainActivity.this, "이 앱을 실행하려면 위치 접근 권한이 필요합니다.", Toast.LENGTH_LONG).show();  // 요청 이유
+                ActivityCompat.requestPermissions(MainActivity.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
             } else {  // 처음 요청 시
-                ActivityCompat.requestPermissions(MainActivity_use_startService.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
+                ActivityCompat.requestPermissions(MainActivity.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
             }
         }
     }
@@ -292,14 +304,14 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
                 Log.d(TAG, "permission success");
                 startLocation();
             } else {
-                ActivityCompat.requestPermissions(MainActivity_use_startService.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
+                ActivityCompat.requestPermissions(MainActivity.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);  // 요청
 
                 // 거부된 권한이 있을 때
                 if (ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[0]) || ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[1]) || ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[2])) {
-                    Toast.makeText(MainActivity_use_startService.this, "권한이 거부 되었습니다. 다시 실행해주세요", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "권한이 거부 되었습니다. 다시 실행해주세요", Toast.LENGTH_LONG).show();
                     finish();
                 } else {
-                    Toast.makeText(MainActivity_use_startService.this, "권한이 거부 되었습니다. 다시 실행해주세요", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "권한이 거부 되었습니다. 다시 실행해주세요", Toast.LENGTH_LONG).show();
                 }
             }
         }
@@ -307,7 +319,7 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
     }
 
     private void showDialogForLocationServiceSetting() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity_use_startService.this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
         builder.setTitle("위치 서비스 비활성화");
         builder.setMessage("앱을 사용하기 위해 위치 서비스가 필요합니다.");
         builder.setCancelable(true);
@@ -351,6 +363,35 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
 
+    // 브로드캐스트리시버로 서비스에서 업데이트 되는 좌표를 UI에 뿌려줌
+    private class BroadcastReceiver extends android.content.BroadcastReceiver {
+        @SuppressLint("SetTextI18n")
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent != null) {
+                Log.d(TAG, "broadcastReceiver success");
+                if (intent.getAction().equals("update")) {
+                    provider = intent.getStringExtra("provider");
+                    latitude = intent.getDoubleExtra("latitude", 0);
+                    longitude = intent.getDoubleExtra("longitude", 0);
+                    accuracy = intent.getFloatExtra("accuracy", 0);
+
+                    provider_tv.setText("제공자 : " + provider);
+                    lat_tv.setText("위도 : " + latitude);
+                    lng_tv.setText("경도 : " + longitude);
+                    accuracy_tv.setText("정확도 : " + accuracy);
+                }
+            }
+        }
+    }
+
+    // 지도 중심 변경 해주기
+    private void setCenter() {
+        if (longitude != 0 && latitude != 0) {
+            mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude), true);
+        }
+    }
+
     // 키해시 값
     private void getAppKeyHash() {
         try {
@@ -367,22 +408,4 @@ public class MainActivity_use_startService extends AppCompatActivity implements 
             Log.e(TAG, "name not found" + e.toString());
         }
     }
-
-
-    // 브로드캐스트리시버를 onCreate 에 등록 -> 서비스에서 데이터가 오면 mReceiver 호출됨  (실패)
-//        LocalBroadcastManager.getInstance(this).registerReceiver(mReceiver, new IntentFilter("GpsServiceFilter"));
-
-    // 서비스에서 값을 받기 위함  ---> (실패)
-//    private BroadcastReceiver mReceiver = new BroadcastReceiver() {
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            if (intent != null) {
-//                latitude = intent.getDoubleExtra("latitude", 0);
-//                longitude = intent.getDoubleExtra("longitude", 0);
-//                accuracy = intent.getFloatExtra("accuracy", 0);
-//                provider = intent.getStringExtra("provider");
-//                Log.d(TAG, "provider = " + provider + " / latitude = " + latitude + " / longitude = " + longitude + " / accuracy = " + accuracy);
-//            }
-//        }
-//    };
 }

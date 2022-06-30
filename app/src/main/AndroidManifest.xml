@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:allowBackup="true"
@@ -19,16 +19,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PushApp">
         <service
-            android:name=".FusedLocationService_use_bindService"
+            android:name=".FusedLocationService"
             android:enabled="true"
-            android:foregroundServiceType="location"
-            android:exported="true"></service>
+            android:exported="true"
+            android:foregroundServiceType="location" />
         <service
             android:name=".GpsTracker"
             android:enabled="true"
             android:exported="true"
-            tools:ignore="Instantiatable" />
-        <!-- firebase 서비스 추가 -->
+            tools:ignore="Instantiatable" /> <!-- firebase 서비스 추가 -->
         <service
             android:name=".MyFirebaseMessagingService"
             android:enabled="true"
@@ -39,9 +38,9 @@
         </service>
 
         <activity
-            android:name=".MainActivity_use_bindService"
-            android:parentActivityName=".MainActivity_use_bindService"
-            android:exported="true">
+            android:name=".MainActivity"
+            android:exported="true"
+            android:parentActivityName=".MainActivity">
 
             <!-- <intent-filter> -->
             <!-- <action android:name="android.intent.action.MAIN" /> -->

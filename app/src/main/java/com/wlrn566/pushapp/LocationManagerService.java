@@ -66,7 +66,7 @@ public class LocationManagerService extends Service {
         String channelId = "location_update_notification_channel";
         String channelName = "Location Service";
         // 알림창 클릭 시 실행할 액티비티 -----------------------------------------------------------------------------------------
-        Intent intent = new Intent(this, MainActivity_use_bindService.class)
+        Intent intent = new Intent(this, MainActivity.class)
                 .setAction(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LAUNCHER)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -112,9 +112,9 @@ public class LocationManagerService extends Service {
         if (intent != null) {
             String action = intent.getAction();
             if (action != null) {
-                if (action.equals(MainActivity_use_bindService.Constants.ACTION_START_LOCATION_SERVICE)) {
+                if (action.equals(MainActivity.Constants.ACTION_START_LOCATION_SERVICE)) {
                     startLocation();
-                } else if (action.equals(MainActivity_use_bindService.Constants.ACTION_STOP_LOCATION_SERVICE)) {
+                } else if (action.equals(MainActivity.Constants.ACTION_STOP_LOCATION_SERVICE)) {
                     stopLocation();
                 }
             }
@@ -145,7 +145,7 @@ public class LocationManagerService extends Service {
         String channelId = "location_notification_channel";
         String channelName = "Location Service";
         // 알림창 클릭 시 실행할 액티비티 -----------------------------------------------------------------------------------------
-        Intent intent = new Intent(this, MainActivity_use_bindService.class)
+        Intent intent = new Intent(this, MainActivity.class)
                 .setAction(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LAUNCHER)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

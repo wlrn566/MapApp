@@ -23,7 +23,7 @@ public class SplashActivity extends AppCompatActivity {
             public void run() {
                 Log.d(TAG, "App Loading");
                 // splash 후 연결 할 액티비티
-                startActivity(new Intent(getApplicationContext(), MainActivity_use_bindService.class));
+                startActivity(new Intent(getApplicationContext(), MainActivity.class));
                 finish();
             }
         }, 2000);

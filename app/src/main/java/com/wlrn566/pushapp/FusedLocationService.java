@@ -8,13 +8,22 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.location.LocationManager;
+import android.os.Binder;
 import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationAvailability;
@@ -23,7 +32,9 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
-public class FusedLocationService_use_startService extends Service {
+import java.util.Optional;
+
+public class FusedLocationService extends Service {
     private double latitude, longitude;
     private String provider;
     private float accuracy;
@@ -31,36 +42,51 @@ public class FusedLocationService_use_startService extends Service {
     private String TAG = getClass().getName();
     private FusedLocationProviderClient fusedLocationClient;
     private String action;
+    private Thread updateThread;
 
-    public FusedLocationService_use_startService() {
+    public FusedLocationService() {
     }
 
     @Override
-    public IBinder onBind(Intent intent) {
-        // TODO: Return the communication channel to the service.
-        throw new UnsupportedOperationException("Not yet implemented");
+    public void onCreate() {
+        Log.d(TAG, "onCreate");
+        super.onCreate();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        Log.d(TAG, "FusedLocationService_use_startService onStartCommand");
+        Log.d(TAG, "onStartCommand");
         if (intent != null) {
             action = intent.getAction();
             if (action != null) {
-                if (action.equals(MainActivity_use_bindService.Constants.ACTION_START_LOCATION_SERVICE)) {
+                if (action.equals(MainActivity.Constants.ACTION_START_LOCATION_SERVICE) || action.equals(MainActivity.Constants.ACTION_UPDATE_LOCATION_SERVICE)) {
                     startLocation();
-                } else if (action.equals(MainActivity_use_bindService.Constants.ACTION_STOP_LOCATION_SERVICE)) {
+                } else if (action.equals(MainActivity.Constants.ACTION_STOP_LOCATION_SERVICE)) {
                     stopLocation();
                 }
+//                else if (action.equals(MainActivity.Constants.ACTION_UPDATE_LOCATION_SERVICE)) {
+//                    updateLocation();
+//                }
             }
         }
         return super.onStartCommand(intent, flags, startId);
     }
 
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "onDestroy");
+        super.onDestroy();
+    }
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 
     private void startLocation() {
-        Log.d(TAG, "FusedLocationService_use_startService start");
+        Log.d(TAG, "FusedLocationService start");
         // fusedLocation 실행
         try {
             LocationRequest locationRequest = LocationRequest.create();
@@ -75,8 +101,14 @@ public class FusedLocationService_use_startService extends Service {
     }
 
     private void stopLocation() {
-        Log.d(TAG, "FusedLocationService_use_startService stop");
+        Log.d(TAG, "FusedLocationService stop");
         LocationServices.getFusedLocationProviderClient(this).removeLocationUpdates(mLocationCallback);
+
+        // 스레드 종료
+        if (updateThread != null) {
+            Log.d(TAG, "updateThread stop");
+            updateThread.interrupt();
+        }
     }
 
     private void sendNotification(String provider, double latitude, double longitude, float accuracy) {
@@ -89,7 +121,7 @@ public class FusedLocationService_use_startService extends Service {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId);
 
         // 알림창 클릭 시 실행할 액티비티 -----------------------------------------------------------------------------------------
-        Intent intent = new Intent(this, MainActivity_use_startService.class)
+        Intent intent = new Intent(this, MainActivity.class)
                 .setAction(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LAUNCHER)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -140,9 +172,48 @@ public class FusedLocationService_use_startService extends Service {
                 float accuracy = locationResult.getLastLocation().getAccuracy();
                 Log.d(TAG, "제공자 : " + provider + " / 위도 : " + latitude + " / 경도 : " + longitude + " / 정확도 : " + accuracy);
 
-                sendNotification(provider, latitude, longitude, accuracy);
+                // 알림 발송 분기처리
+                if (action.equals(MainActivity.Constants.ACTION_START_LOCATION_SERVICE)) {
+                    sendNotification(provider, latitude, longitude, accuracy);
+                } else {
+                    // 스레드를 이용해서 액티비티에 데이터를 넘김
+                    updateThread = new updateThread(provider, latitude, longitude, accuracy);
+                    updateThread.start();
+                }
             }
         }
     };
 
+    // 위치 갱신 스레드
+    class updateThread extends Thread {
+        private String provider;
+        double latitude;
+        double longitude;
+        float accuracy;
+
+        updateThread(String provider, double latitude, double longitude, float accuracy) {
+            this.provider = provider;
+            this.latitude = latitude;
+            this.longitude = longitude;
+            this.accuracy = accuracy;
+        }
+
+        public void run() {
+            Log.d(TAG, "updateThread start");
+
+            // 액티비티의 브로드캐스트에 데이터 보내기
+            Intent intent = new Intent();
+            intent.setAction("update");
+            intent.putExtra("provider", provider);
+            intent.putExtra("latitude", latitude);
+            intent.putExtra("longitude", longitude);
+            intent.putExtra("accuracy", accuracy);
+            sendBroadcast(intent);
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Log.e(TAG, e.toString());
+            }
+        }
+    }
 }
