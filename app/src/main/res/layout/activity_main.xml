@@ -67,11 +67,11 @@
             android:text="지도 중심 이동" />
 
         <Button
-            android:id="@+id/push_btn"
+            android:id="@+id/btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
-            android:text="Button" />
+            android:text="카카오맵" />
     </LinearLayout>
 
     <RelativeLayout

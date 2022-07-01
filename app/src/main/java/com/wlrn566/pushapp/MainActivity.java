@@ -16,6 +16,7 @@ import android.content.pm.Signature;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -63,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String provider;
 
     private TextView provider_tv, add_tv, lat_tv, lng_tv, accuracy_tv;
-    private Button gps_btn, setCenter_btn;
+    private Button gps_btn, setCenter_btn, btn;
     private MapView mapView;
     private ViewGroup mapViewContainer;
 
@@ -116,9 +117,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         accuracy_tv = findViewById(R.id.accuracy_tv);
         gps_btn = findViewById(R.id.gps_btn);
         setCenter_btn = findViewById(R.id.setCenter_btn);
+        btn = findViewById(R.id.btn);
 
         gps_btn.setOnClickListener(this);
         setCenter_btn.setOnClickListener(this);
+        btn.setOnClickListener(this);
 
         if (isGpsServiceRunning(FusedLocationService.class)) {  // 앱 들어왔을 때
             gps_btn.setText("ON");
@@ -161,9 +164,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (mBroadcastReceiver != null) {
             unregisterReceiver(mBroadcastReceiver);
         }
+        if (poiItems.size() > 0) {
+            for (int i = 0; i < poiItems.size(); i++) {
+                mapView.removePOIItem(poiItems.get(i));
+                poiItems.remove(poiItems.get(i));
+            }
+        }
     }
 
     private void realTimeLocation() {
+        // updateLocation 이면 브로드캐스트로 위치값을 받아서 UI에 뿌림
+        mBroadcastReceiver = new BroadcastReceiver();  // 선언
+        IntentFilter filter = new IntentFilter("update");  // 필터
+        registerReceiver(mBroadcastReceiver, filter);  // 등록
+
         Intent intent = new Intent(getApplicationContext(), FusedLocationService.class);
         intent.setAction(Constants.ACTION_REALTIME_LOCATION_SERVICE);
         startService(intent);
@@ -268,6 +282,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.setCenter_btn:
                 Log.d(TAG, "setCenter click");
                 setCenter();
+                break;
+            case R.id.btn:
+                Log.d(TAG, "btn click");
+
+                Uri url = Uri.parse("kakaomap://look?p=" + latitude + "," + longitude);
+                Intent intent = new Intent(Intent.ACTION_VIEW, url);
+                startActivity(intent);
                 break;
             default:
                 break;
@@ -406,8 +427,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     longitude = intent.getDoubleExtra("longitude", 0);
                     accuracy = intent.getFloatExtra("accuracy", 0);
 
-                    String addr = getCurrentAddress(latitude, longitude);
-
                     provider_tv.setText("제공자 : " + provider);
                     add_tv.setText("주소 : " + getCurrentAddress(latitude, longitude));
                     lat_tv.setText("위도 : " + latitude);
@@ -441,9 +460,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         marker.setMarkerType(MapPOIItem.MarkerType.RedPin);  // 마커 모양.
         marker.setSelectedMarkerType(null);  // 마커를 클릭했을때 마커 모양.
 
+        Log.d(TAG, "poiItems = " + poiItems);
         if (poiItems.size() > 0) {
-            mapView.removePOIItem(poiItems.get(0));
-            poiItems.remove(poiItems.get(0));
+            for (int i = 0; i < poiItems.size(); i++) {
+                mapView.removePOIItem(poiItems.get(i));
+                poiItems.remove(poiItems.get(i));
+            }
         }
         mapView.addPOIItem(marker);
         poiItems.add(marker);
