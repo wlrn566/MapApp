@@ -67,7 +67,7 @@
             android:text="지도 중심 이동" />
 
         <Button
-            android:id="@+id/fragment_btn"
+            android:id="@+id/push_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"

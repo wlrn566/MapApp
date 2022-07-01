@@ -101,9 +101,6 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
         }
     }
 
-
-
-
     @SuppressLint("SetTextI18n")
     private void setPage() {
         // 텍스트 출력

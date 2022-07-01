@@ -48,7 +48,7 @@ public class FusedLocationService2 extends Service {
         if (intent != null) {
             action = intent.getAction();
             if (action != null) {
-                if (action.equals(MainActivity.Constants.ACTION_START_LOCATION_SERVICE)) {
+                if (action.equals(MainActivity2.Constants.ACTION_START_LOCATION_SERVICE)) {
                     startLocation();
                 } else if (action.equals(MainActivity.Constants.ACTION_STOP_LOCATION_SERVICE)) {
                     stopLocation();
