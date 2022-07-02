@@ -1,4 +1,4 @@
-package com.wlrn566.pushapp;
+package com.wlrn566.gpsTracker;
 
 import android.Manifest;
 import android.app.Service;
@@ -14,8 +14,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
-
-import java.util.List;
 
 public class GpsTracker extends Service implements LocationListener {
 

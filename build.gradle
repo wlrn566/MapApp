@@ -5,10 +5,10 @@ buildscript {
         jcenter()
         maven { url 'https://devrepo.kakao.com/nexus/content/groups/public/'}
     }
-    dependencies {
-        classpath 'com.google.gms:google-services:4.3.10'
-
-    }
+//    dependencies {
+//        classpath 'com.google.gms:google-services:4.3.10'
+//
+//    }
 }
 plugins {
     id 'com.android.application' version '7.1.2' apply false

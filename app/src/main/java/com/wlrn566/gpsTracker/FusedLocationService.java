@@ -1,4 +1,4 @@
-package com.wlrn566.pushapp;
+package com.wlrn566.gpsTracker;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -8,22 +8,14 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.location.LocationManager;
-import android.os.Binder;
 import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationAvailability;
@@ -31,8 +23,6 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-
-import java.util.Optional;
 
 public class FusedLocationService extends Service {
     private double latitude, longitude;

@@ -1,4 +1,4 @@
-package com.wlrn566.pushapp;
+package com.wlrn566.gpsTracker;
 
 import org.junit.Test;
 

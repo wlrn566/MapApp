@@ -1,4 +1,4 @@
-package com.wlrn566.pushapp;
+package com.wlrn566.gpsTracker;
 
 import android.app.Notification;
 import android.app.NotificationChannel;

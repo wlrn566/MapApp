@@ -1,6 +1,5 @@
-package com.wlrn566.pushapp;
+package com.wlrn566.gpsTracker;
 
-import android.location.LocationManager;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
