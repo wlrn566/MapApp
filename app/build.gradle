@@ -4,6 +4,16 @@ plugins {
     id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
 }
 
+// api 키 깃허브에서 숨기기
+// 1. .gitignore 에 local_properties 있는지 확인
+// 2. 없으면 추가 / 있으면 거기에 api 키 선언
+// 3. gradle app 파일에 객체 생성 후 properties 파일 읽어오기
+// 4. 코드 내에서 사용 시 : defaultConfig - buildConfigField 사용 (properties 파일에 "" 붙여야함) - 액티비티에서 BuildConfig 클래스 확인하기
+//    Manifest 파일에서 사용 시 : defaultConfig - manifestPlaceholders 사용 (properties 파일에 "" 붙이면 안됨!)
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+def KAKAO_API_KEY = properties.getProperty('KAKAO_API_KEY')
+
 android {
     compileSdk 32
 
@@ -15,6 +25,9 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        manifestPlaceholders = [KAKAO_API_KEY: KAKAO_API_KEY]
+//        buildConfigField "String", "KAKAO_API_KEY", properties['KAKAO_API_KEY']
     }
 
     buildTypes {
@@ -27,7 +40,6 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-
     splits {
         abi {
             enable true
@@ -63,14 +75,14 @@ dependencies {
 //
 //    // FCM 수신용
 //    implementation 'com.google.firebase:firebase-messaging:21.1.0'
-    
+
     // 카카오맵
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation files('libs/libDaumMapAndroid.jar')
 
     // google gps
     implementation('com.google.android.gms:play-services-location:20.0.0')
-    
+
     // PendingIntent 오류해결
     implementation 'androidx.work:work-runtime:2.7.1'
 }
