@@ -8,10 +8,17 @@
     android:orientation="vertical"
     tools:context=".Activity.MainActivity">
 
+    <Button
+        android:id="@+id/show"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="좌표보기"/>
+
     <TextView
         android:id="@+id/provider_tv"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"/>
 
     <View
         android:layout_width="wrap_content"
@@ -72,12 +79,18 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
             android:text="카카오맵" />
+
+        <androidx.appcompat.widget.AppCompatSpinner
+            android:id="@+id/spn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
     </LinearLayout>
 
     <RelativeLayout
         android:id="@+id/map_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical">
 
     </RelativeLayout>

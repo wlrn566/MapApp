@@ -23,6 +23,7 @@ import android.view.View;
 
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,6 +34,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.wlrn566.gpsTracker.Fragment.ShowCoordinatesDialogFragment;
 import com.wlrn566.gpsTracker.Service.FusedLocationService;
 import com.wlrn566.gpsTracker.R;
 
@@ -40,11 +50,17 @@ import net.daum.mf.map.api.MapPOIItem;
 import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private String TAG = getClass().getName();
@@ -54,15 +70,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     };
     private ArrayList<MapPOIItem> poiItems = new ArrayList<>();
     private static final int GPS_ENABLE_REQUEST_CODE = 2001, PERMISSIONS_REQUEST_CODE = 100;
-    private double latitude;
-    private double longitude;
+    private double latitude, longitude;
+    private String provider, add;
     private float accuracy;
-    private String provider;
 
     private TextView provider_tv, add_tv, lat_tv, lng_tv, accuracy_tv;
-    private Button gps_btn, setCenter_btn, btn;
+    private Button show, gps_btn, setCenter_btn, btn;
     private MapView mapView;
     private ViewGroup mapViewContainer;
+    private Spinner spn;
 
     private BroadcastReceiver mBroadcastReceiver;
 
@@ -122,10 +138,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         lat_tv = findViewById(R.id.lat_tv);
         lng_tv = findViewById(R.id.lng_tv);
         accuracy_tv = findViewById(R.id.accuracy_tv);
+        show = findViewById(R.id.show);
         gps_btn = findViewById(R.id.gps_btn);
         setCenter_btn = findViewById(R.id.setCenter_btn);
         btn = findViewById(R.id.btn);
+        spn = findViewById(R.id.spn);
 
+        show.setOnClickListener(this);
         gps_btn.setOnClickListener(this);
         setCenter_btn.setOnClickListener(this);
         btn.setOnClickListener(this);
@@ -151,6 +170,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mapView = new MapView(this);
         mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
         mapViewContainer.addView(mapView);
+        loadRestaurant();
 
         setCenter();
     }
@@ -213,7 +233,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return "주소 미발견";
         }
         Address address = addresses.get(0);
-        return address.getAddressLine(0).toString();
+        add = address.getAddressLine(0).toString();
+        return add;
     }
 
     private boolean isGpsServiceRunning(Class<?> serviceClass) {
@@ -270,6 +291,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
+            case R.id.show:
+                Log.d(TAG, "showCoordinatesDialogFragment");
+                Bundle bundle = new Bundle();
+                if (provider != null) {
+                    bundle.putString("provider", provider);
+                    bundle.putDouble("lat", latitude);
+                    bundle.putDouble("lng", longitude);
+                    bundle.putString("add", add);
+                    ShowCoordinatesDialogFragment showCoordinatesDialogFragment = new ShowCoordinatesDialogFragment();
+                    showCoordinatesDialogFragment.setArguments(bundle);
+                    showCoordinatesDialogFragment.show(this.getSupportFragmentManager(), null);
+                } else {
+                    Toast.makeText(this, "확인된 위치가 없습니다.", Toast.LENGTH_SHORT).show();
+                }
+                break;
             case R.id.gps_btn:
                 Log.d(TAG, "click");
                 Log.d(TAG, "isGpsServiceRunning ? " + isGpsServiceRunning(FusedLocationService.class));
@@ -292,13 +328,68 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.btn:
                 Log.d(TAG, "btn click");
-
-                Uri url = Uri.parse("kakaomap://look?p=" + latitude + "," + longitude);
-                Intent intent = new Intent(Intent.ACTION_VIEW, url);
-                startActivity(intent);
+//                Uri url = Uri.parse("kakaomap://look?p=" + latitude + "," + longitude);
+//                Intent intent = new Intent(Intent.ACTION_VIEW, url);
+//                startActivity(intent);
                 break;
             default:
                 break;
+        }
+    }
+
+    private void loadRestaurant() {
+
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+
+        final String url = "https://api.odcloud.kr/api/3082925/v1/uddi:eeb6164d-1dd7-4382-8a96-a6888185864a?page=1&perPage=10&serviceKey=XbqmauXLITvcnwRs5mZPbD3jxLvQfpy25GhcVpx78ocFlUwc6qiZ0yIdQugg0t0t8VwtvjC2ZEhRvLLPCUR8%2FQ%3D%3D";
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d(TAG, response.toString());
+//                get();
+                try {
+                    JSONArray jsonArray = response.getJSONArray("data");
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        String addr = jsonArray.getJSONObject(i).getString("소재지");
+                        String name = jsonArray.getJSONObject(i).getString("상 호");
+
+                        Thread thread = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                getCoordinates(addr, name);
+
+                            }
+                        });
+                        thread.start();
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d(TAG, error.toString());
+            }
+        });
+        requestQueue.add(request);
+    }
+
+    public void getCoordinates(String str, String name) {
+        Geocoder geocoder = new Geocoder(this);
+        try {
+            List<Address> list = geocoder.getFromLocationName(str, 10);
+            for (int i = 0; i < list.size(); i++) {
+                Address address = list.get(i);
+                Double lat = address.getLatitude();
+                Double lng = address.getLongitude();
+                Log.d(TAG, "name = " + name + " lat = " + lat + " lng = " + lng);
+                setMarkerRestaurant(lat, lng);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -474,6 +565,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 poiItems.remove(poiItems.get(i));
             }
         }
+        mapView.addPOIItem(marker);
+        poiItems.add(marker);
+    }
+
+    // 마커 찍어주기
+    private void setMarkerRestaurant(double latitude, double longitude) {
+        Log.d(TAG, "setMarkerRestaurant");
+        MapPoint mapPoint = MapPoint.mapPointWithGeoCoord(latitude, longitude);
+        MapPOIItem marker = new MapPOIItem();
+        marker.setItemName("Default Marker");
+        marker.setTag(0);
+        marker.setMapPoint(mapPoint);
+        marker.setMarkerType(MapPOIItem.MarkerType.BluePin);  // 마커 모양.
+        marker.setSelectedMarkerType(null);  // 마커를 클릭했을때 마커 모양.
+
         mapView.addPOIItem(marker);
         poiItems.add(marker);
     }
