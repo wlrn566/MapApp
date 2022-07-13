@@ -1,9 +1,8 @@
-package com.wlrn566.gpsTracker;
+package com.wlrn566.gpsTracker.Activity;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
-import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -21,6 +20,7 @@ import android.provider.Settings;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
+
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
@@ -33,7 +33,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import net.daum.mf.map.api.BuildConfig;
+import com.wlrn566.gpsTracker.Service.FusedLocationService;
+import com.wlrn566.gpsTracker.R;
+
 import net.daum.mf.map.api.MapPOIItem;
 import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;
@@ -69,10 +71,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     // bindService : 액티비티와 서비스 간에 통신 가능 (ex. 액티비티->서비스 시작->서비스의 결과값을 주기적으로 액티비티에 전달)
 
     public class Constants {
-        static final int LOCATION_SERVICE_ID = 175;
-        static final String ACTION_PUSH_LOCATION_SERVICE = "pushLocationService";
-        static final String ACTION_STOP_LOCATION_SERVICE = "stopLocationService";
-        static final String ACTION_REALTIME_LOCATION_SERVICE = "realTimeLocationService";
+        public static final int LOCATION_SERVICE_ID = 175;
+        public static final String ACTION_PUSH_LOCATION_SERVICE = "pushLocationService";
+        public static final String ACTION_STOP_LOCATION_SERVICE = "stopLocationService";
+        public static final String ACTION_REALTIME_LOCATION_SERVICE = "realTimeLocationService";
     }
 
     @SuppressLint("SetTextI18n")
@@ -99,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if (ai.metaData != null) {
             String metaData = ai.metaData.getString("com.kakao.sdk.AppKe");
-            Log.e("metaData",metaData+"");
+            Log.e("metaData", metaData + "");
         }
 
 //        // 알림창에서 값 가져오기

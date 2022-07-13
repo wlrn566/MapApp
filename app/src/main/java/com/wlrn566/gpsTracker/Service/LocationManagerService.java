@@ -1,4 +1,4 @@
-package com.wlrn566.gpsTracker;
+package com.wlrn566.gpsTracker.Service;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -17,6 +17,9 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+
+import com.wlrn566.gpsTracker.Activity.MainActivity;
+import com.wlrn566.gpsTracker.R;
 
 public class LocationManagerService extends Service {
     private double latitude, longitude;

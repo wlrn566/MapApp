@@ -1,4 +1,4 @@
-package com.wlrn566.gpsTracker;
+package com.wlrn566.gpsTracker.Service;
 
 import android.Manifest;
 import android.app.Service;

@@ -1,4 +1,4 @@
-package com.wlrn566.gpsTracker;
+package com.wlrn566.gpsTracker.Fragment;
 
 import android.os.Bundle;
 
@@ -9,6 +9,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+
+import com.wlrn566.gpsTracker.R;
 
 import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;

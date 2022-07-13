@@ -1,4 +1,4 @@
-package com.wlrn566.gpsTracker;
+package com.wlrn566.gpsTracker.Activity;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+
+import com.wlrn566.gpsTracker.Activity.MainActivity;
 
 public class SplashActivity extends AppCompatActivity {
 

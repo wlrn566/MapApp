@@ -1,4 +1,4 @@
-package com.wlrn566.gpsTracker;
+package com.wlrn566.gpsTracker.Service;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -23,6 +23,8 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.wlrn566.gpsTracker.Activity.MainActivity;
+import com.wlrn566.gpsTracker.R;
 
 public class FusedLocationService extends Service {
     private double latitude, longitude;
