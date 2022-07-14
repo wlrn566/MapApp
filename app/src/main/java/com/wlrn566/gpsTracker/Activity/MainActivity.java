@@ -46,10 +46,13 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.gson.Gson;
 import com.wlrn566.gpsTracker.BuildConfig;
 import com.wlrn566.gpsTracker.Fragment.ShowCoordinatesDialogFragment;
+import com.wlrn566.gpsTracker.Public.RetrofitClient;
 import com.wlrn566.gpsTracker.Service.FusedLocationService;
 import com.wlrn566.gpsTracker.R;
+import com.wlrn566.gpsTracker.VO.RestaurantVO;
 
 import net.daum.mf.map.api.MapPOIItem;
 import net.daum.mf.map.api.MapPoint;
@@ -69,18 +72,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     // 1. gps on 을 하면 백그라운드에서도 사용자의 위치를 파악하게 함
     // 2. 앱 실행 중에는 마커를 찍어가며 사용자의 위치를 보여줌
     // 3. 중심이동 버튼 클릭 시 마커 위치로 이동 (처음 위치는 시청)
     // 4. 주제 선택 시 주제에 맞는 위치를 마커로 표시 -> 액티비티 호출 시 api 연동 후 마커 저장
-    // 5. 주제 선택 시 사용자가 마커 위치 접근 시 알림 전송
-    
+    // 5. 주제 선택 시 사용자가 마커 위치 접근 시 알림 전송 (fcm)
+
     private String TAG = getClass().getName();
     private long backPressedTime = 0;
     private String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
-            , Manifest.permission.ACCESS_COARSE_LOCATION
-    };
+            , Manifest.permission.ACCESS_COARSE_LOCATION};
     private ArrayList<MapPOIItem> poiItems = new ArrayList<>();
     private ArrayList<MapPOIItem> poiItems_restaurant = new ArrayList<>();
     private static final int GPS_ENABLE_REQUEST_CODE = 2001, PERMISSIONS_REQUEST_CODE = 100;
@@ -94,6 +99,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ViewGroup mapViewContainer;
 
     private BroadcastReceiver mBroadcastReceiver;
+
+    private RestaurantVO restaurantVO;
 
     // startService / bindService
     // startService : 액티비티와 서비스 간에 통신을 하지 않음 (ex. 액티비티->서비스 시작->서비스 결과 알림표시 끝)
@@ -112,7 +119,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_main);
-        loadRestaurant();  // 맛집 데이터 로드하기 (50개)
         // 권한 확인
         if (!checkLocationServiceStatus()) {  // GPS
             Log.d(TAG, "go Location Setting");
@@ -207,7 +213,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.setCenter_btn:
                 Log.d(TAG, "setCenter click");
-                setCenter();
+//                setCenter();
+                loadRestaurantData();
+
                 break;
             case R.id.kakaoMap_btn:
                 Log.d(TAG, "kakaoMap_btn click");
@@ -217,7 +225,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.select_btn:
                 Log.d(TAG, "select_btn click");
-                setDialog();
+                showDialog();
                 break;
             default:
                 break;
@@ -422,23 +430,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return add;
     }
 
-    public void getCurrentCoordinates(String str, String name) {
-        //Geocoder - 주소를 GPS로 변환
-        Geocoder geocoder = new Geocoder(this);
-        try {
-            List<Address> list = geocoder.getFromLocationName(str, 10);
-            for (int i = 0; i < list.size(); i++) {
-                Address address = list.get(i);
-                Double lat = address.getLatitude();
-                Double lng = address.getLongitude();
-                Log.d(TAG, "name = " + name + " lat = " + lat + " lng = " + lng);
-                saveMarkerRestaurant(lat, lng);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     // 브로드캐스트리시버로 서비스에서 업데이트 되는 좌표받아옴
     private class BroadcastReceiver extends android.content.BroadcastReceiver {
         @SuppressLint("SetTextI18n")
@@ -520,6 +511,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         marker.setMapPoint(mapPoint);
         marker.setMarkerType(MapPOIItem.MarkerType.RedPin);  // 마커 모양.
         marker.setSelectedMarkerType(null);  // 마커를 클릭했을때 마커 모양.
+        marker.setShowCalloutBalloonOnTouch(false);
 
         Log.d(TAG, "poiItems = " + poiItems);
         if (poiItems.size() > 0) {
@@ -532,7 +524,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         poiItems.add(marker);
     }
 
-    private void setDialog() {
+    private void showDialog() {
         // 주제 선택 다이얼로그 띄우기
         Log.d(TAG, "setDialog");
         String[] items = new String[]{"맛집", "관광지"};
@@ -547,6 +539,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onClick(DialogInterface dialogInterface, int i) {
                 String selected = items[item[0]];  // '확인' 버튼을 누르면 선택한 주제를 저장
                 Log.d(TAG, "select = " + selected);
+
                 select_btn.setText(selected);
             }
         }).setNegativeButton("취소", new DialogInterface.OnClickListener() {
@@ -569,46 +562,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         poiItems_restaurant.add(marker);
         Log.d(TAG, "poiItems_restaurant count = " + String.valueOf(poiItems_restaurant.size()));
-    }
-
-    private void loadRestaurant() {
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
-
-        final String key = BuildConfig.FOOD_API_KEY;
-        final String url = "https://api.odcloud.kr/api/3082925/v1/uddi:eeb6164d-1dd7-4382-8a96-a6888185864a?page=1&perPage=50&serviceKey=" + key;
-
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                Log.d(TAG, response.toString());
-//                get();
-                try {
-                    JSONArray jsonArray = response.getJSONArray("data");
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        String addr = jsonArray.getJSONObject(i).getString("소재지");
-                        String name = jsonArray.getJSONObject(i).getString("상 호");
-
-                        // 쓰레드로 진행
-                        Thread thread = new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                getCurrentCoordinates(addr, name);
-                            }
-                        });
-                        thread.start();
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.d(TAG, error.toString());
-            }
-        });
-        requestQueue.add(request);
     }
 
     // 키해시 값
@@ -640,6 +593,54 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.d(TAG, "onResume");
         setPage();
     }
+
+    private void loadRestaurantData() {
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+
+        final String url = "http://192.168.0.9/load_restaurant.php?";
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new com.android.volley.Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d(TAG, response.toString());
+                try {
+                    if (response.getString("result_str").equals("success")) {
+                        JSONArray jsonArray = response.getJSONArray("restaurant");  // VO 변환할 데이터 추출
+                        Gson gson = new Gson();
+                        for (int i = 0; i < jsonArray.length(); i++) {
+                            restaurantVO = gson.fromJson(jsonArray.getString(i), RestaurantVO.class);  // JSON -> Object 변환
+//                            Log.d(TAG, restaurantVO.toString());
+                            saveMarkerRestaurant(restaurantVO.getLatitude(), restaurantVO.getLongitude());  // 마커 저장
+                        }
+                    } else {
+                        Log.e(TAG, "failed loadRestaurantData");
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d(TAG, error.toString());
+            }
+        });
+        requestQueue.add(request);
+    }
+//    private void loadRestaurantData() {
+//        Call<RestaurantVO> getData = RetrofitClient.getApiService().getRestaurantData("s");
+//        getData.enqueue(new Callback<RestaurantVO>() {
+//            @Override
+//            public void onResponse(Call<RestaurantVO> call, Response<RestaurantVO> response) {
+//                Log.d(TAG,"response = "+response.body());
+//            }
+//
+//            @Override
+//            public void onFailure(Call<RestaurantVO> call, Throwable t) {
+//                Log.d(TAG,t.getMessage());
+//            }
+//        });
+//    }
 
     @Override
     protected void onPause() {
