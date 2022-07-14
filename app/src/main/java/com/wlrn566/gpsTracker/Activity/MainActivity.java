@@ -22,7 +22,11 @@ import android.util.Log;
 import android.view.View;
 
 import android.view.ViewGroup;
+import android.widget.Adapter;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -56,30 +60,38 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    // 1. gps on 을 하면 백그라운드에서도 사용자의 위치를 파악하게 함
+    // 2. 앱 실행 중에는 마커를 찍어가며 사용자의 위치를 보여줌
+    // 3. 중심이동 버튼 클릭 시 마커 위치로 이동 (처음 위치는 시청)
+    // 4. 주제 선택 시 주제에 맞는 위치를 마커로 표시 -> 액티비티 호출 시 api 연동 후 마커 저장
+    // 5. 주제 선택 시 사용자가 마커 위치 접근 시 알림 전송
+    
     private String TAG = getClass().getName();
     private long backPressedTime = 0;
     private String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
             , Manifest.permission.ACCESS_COARSE_LOCATION
     };
     private ArrayList<MapPOIItem> poiItems = new ArrayList<>();
+    private ArrayList<MapPOIItem> poiItems_restaurant = new ArrayList<>();
     private static final int GPS_ENABLE_REQUEST_CODE = 2001, PERMISSIONS_REQUEST_CODE = 100;
     private double latitude, longitude;
     private String provider, add;
     private float accuracy;
 
-//    private TextView provider_tv, add_tv, lat_tv, lng_tv, accuracy_tv;
-    private Button show, gps_btn, setCenter_btn, kakaoMap_btn;
+    //    private TextView provider_tv, add_tv, lat_tv, lng_tv, accuracy_tv;
+    private Button show, gps_btn, setCenter_btn, kakaoMap_btn, select_btn;
     private MapView mapView;
     private ViewGroup mapViewContainer;
-    private Spinner spn;
 
     private BroadcastReceiver mBroadcastReceiver;
 
@@ -100,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_main);
-
+        loadRestaurant();  // 맛집 데이터 로드하기 (50개)
         // 권한 확인
         if (!checkLocationServiceStatus()) {  // GPS
             Log.d(TAG, "go Location Setting");
@@ -143,149 +155,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         gps_btn = findViewById(R.id.gps_btn);
         setCenter_btn = findViewById(R.id.setCenter_btn);
         kakaoMap_btn = findViewById(R.id.kakaoMap_btn);
-        spn = findViewById(R.id.spn);
+        select_btn = findViewById(R.id.select_btn);
 
         show.setOnClickListener(this);
         gps_btn.setOnClickListener(this);
         setCenter_btn.setOnClickListener(this);
         kakaoMap_btn.setOnClickListener(this);
+        select_btn.setOnClickListener(this);
 
         if (isGpsServiceRunning(FusedLocationService.class)) {  // 앱 들어왔을 때
             gps_btn.setText("ON");
             realTimeLocation();  // 실시간으로 지도에 위치 띄우기
         } else {  // 처음 실행 또는 알림이 아닌 직접 들어왔을 때
             gps_btn.setText("OFF");
-        }
-    }
-
-    @SuppressLint("SetTextI18n")
-    private void setPage() {
-        // 텍스트 출력
-//        provider_tv.setText("제공자 : " + (provider != null ? provider : "정보없음"));
-//        add_tv.setText("주소 : " + (latitude != 0 && longitude != 0 ? getCurrentAddress(latitude, longitude) : "정보없음"));
-//        lat_tv.setText("위도 : " + (latitude != 0 ? latitude : "정보없음"));
-//        lng_tv.setText("경도 : " + (longitude != 0 ? longitude : "정보없음"));
-//        accuracy_tv.setText("정확도 : " + (accuracy != 0 ? accuracy : "정보없음"));
-
-        // 지도 띄우기
-        mapView = new MapView(this);
-        mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
-        mapViewContainer.addView(mapView);
-//        loadRestaurant();
-
-        setCenter();
-    }
-
-    private void pushLocation() {
-        Intent intent = new Intent(getApplicationContext(), FusedLocationService.class);
-        intent.setAction(Constants.ACTION_PUSH_LOCATION_SERVICE);
-        startService(intent);
-    }
-
-    private void stopLocation() {
-        Intent intent = new Intent(getApplicationContext(), FusedLocationService.class);
-        intent.setAction(Constants.ACTION_STOP_LOCATION_SERVICE);
-        startService(intent);
-        stopService(intent);
-
-        // 리시버 등록해제
-        if (mBroadcastReceiver != null) {
-            unregisterReceiver(mBroadcastReceiver);
-        }
-        if (poiItems.size() > 0) {
-            for (int i = 0; i < poiItems.size(); i++) {
-                mapView.removePOIItem(poiItems.get(i));
-                poiItems.remove(poiItems.get(i));
-            }
-        }
-    }
-
-    private void realTimeLocation() {
-        // updateLocation 이면 브로드캐스트로 위치값을 받아서 UI에 뿌림
-        mBroadcastReceiver = new BroadcastReceiver();  // 선언
-        IntentFilter filter = new IntentFilter("update");  // 필터
-        registerReceiver(mBroadcastReceiver, filter);  // 등록
-
-        Intent intent = new Intent(getApplicationContext(), FusedLocationService.class);
-        intent.setAction(Constants.ACTION_REALTIME_LOCATION_SERVICE);
-        startService(intent);
-    }
-
-    public String getCurrentAddress(double latitude, double longitude) {
-        //Geocoder - GPS를 주소로 변환
-        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
-
-        List<Address> addresses;
-        try {
-            addresses = geocoder.getFromLocation(
-                    latitude,
-                    longitude,
-                    7);
-        } catch (IOException ioException) {
-            //네트워크 문제
-            Toast.makeText(this, "Geocoder failed", Toast.LENGTH_LONG).show();
-            return "지오코더 서비스 사용불가";
-        } catch (IllegalArgumentException illegalArgumentException) {
-            Toast.makeText(this, "wrong GPS coordinate", Toast.LENGTH_LONG).show();
-            return "잘못된 GPS 좌표";
-        }
-        if (addresses == null || addresses.size() == 0) {
-            Toast.makeText(this, "address undetected", Toast.LENGTH_LONG).show();
-            return "주소 미발견";
-        }
-        Address address = addresses.get(0);
-        add = address.getAddressLine(0).toString();
-        return add;
-    }
-
-    private boolean isGpsServiceRunning(Class<?> serviceClass) {
-        try {
-            ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-            for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-                if (serviceClass.getName().equals(service.service.getClassName())) {
-                    return true;
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, e.toString());
-            return false;
-        }
-        return false;
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Log.d(TAG, "onStart");
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.d(TAG, "onResume");
-        setPage();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Log.d(TAG, "onPause");
-        mapViewContainer.removeView(mapView);
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        Log.d(TAG, "onStop");
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Log.d(TAG, "onDestroy");
-        if (isGpsServiceRunning(FusedLocationService.class)) {
-            stopLocation();
-            pushLocation();
         }
     }
 
@@ -328,70 +210,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 setCenter();
                 break;
             case R.id.kakaoMap_btn:
-                Log.d(TAG, "btn click");
+                Log.d(TAG, "kakaoMap_btn click");
                 Uri url = Uri.parse("kakaomap://look?p=" + latitude + "," + longitude);
                 Intent intent = new Intent(Intent.ACTION_VIEW, url);
                 startActivity(intent);
                 break;
+            case R.id.select_btn:
+                Log.d(TAG, "select_btn click");
+                setDialog();
+                break;
             default:
                 break;
-        }
-    }
-
-    private void loadRestaurant() {
-
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
-
-        final String key = BuildConfig.FOOD_API_KEY;
-        final String url = "https://api.odcloud.kr/api/3082925/v1/uddi:eeb6164d-1dd7-4382-8a96-a6888185864a?page=1&perPage=10&serviceKey=" + key;
-
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                Log.d(TAG, response.toString());
-//                get();
-                try {
-                    JSONArray jsonArray = response.getJSONArray("data");
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        String addr = jsonArray.getJSONObject(i).getString("소재지");
-                        String name = jsonArray.getJSONObject(i).getString("상 호");
-
-                        Thread thread = new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                getCoordinates(addr, name);
-
-                            }
-                        });
-                        thread.start();
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.d(TAG, error.toString());
-            }
-        });
-        requestQueue.add(request);
-    }
-
-    public void getCoordinates(String str, String name) {
-        Geocoder geocoder = new Geocoder(this);
-        try {
-            List<Address> list = geocoder.getFromLocationName(str, 10);
-            for (int i = 0; i < list.size(); i++) {
-                Address address = list.get(i);
-                Double lat = address.getLatitude();
-                Double lng = address.getLongitude();
-                Log.d(TAG, "name = " + name + " lat = " + lat + " lng = " + lng);
-                setMarkerRestaurant(lat, lng);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -410,6 +239,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //    ------------------------------------------------------------------권한-------------------------------------------------------------------
     void checkRunTimePermission() {
         // 위치 권한 있는지 확인하기
         int hasFineLocationPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION);
@@ -514,6 +344,101 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
 
+    private boolean isGpsServiceRunning(Class<?> serviceClass) {
+        try {
+            ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+                if (serviceClass.getName().equals(service.service.getClassName())) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, e.toString());
+            return false;
+        }
+        return false;
+    }
+
+    //    ----------------------------------------------------------------------GPS-------------------------------------------------------------------
+    private void pushLocation() {
+        Intent intent = new Intent(getApplicationContext(), FusedLocationService.class);
+        intent.setAction(Constants.ACTION_PUSH_LOCATION_SERVICE);
+        startService(intent);
+    }
+
+    private void stopLocation() {
+        Intent intent = new Intent(getApplicationContext(), FusedLocationService.class);
+        intent.setAction(Constants.ACTION_STOP_LOCATION_SERVICE);
+        startService(intent);
+        stopService(intent);
+
+        // 리시버 등록해제
+        if (mBroadcastReceiver != null) {
+            unregisterReceiver(mBroadcastReceiver);
+        }
+        if (poiItems.size() > 0) {
+            for (int i = 0; i < poiItems.size(); i++) {
+                mapView.removePOIItem(poiItems.get(i));
+                poiItems.remove(poiItems.get(i));
+            }
+        }
+    }
+
+    private void realTimeLocation() {
+        // updateLocation 이면 브로드캐스트로 위치값을 받아서 UI에 뿌림
+        mBroadcastReceiver = new BroadcastReceiver();  // 선언
+        IntentFilter filter = new IntentFilter("update");  // 필터
+        registerReceiver(mBroadcastReceiver, filter);  // 등록
+
+        Intent intent = new Intent(getApplicationContext(), FusedLocationService.class);
+        intent.setAction(Constants.ACTION_REALTIME_LOCATION_SERVICE);
+        startService(intent);
+    }
+
+    public String getCurrentAddress(double latitude, double longitude) {
+        //Geocoder - GPS를 주소로 변환
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+
+        List<Address> addresses;
+        try {
+            addresses = geocoder.getFromLocation(
+                    latitude,
+                    longitude,
+                    7);
+        } catch (IOException ioException) {
+            //네트워크 문제
+            Toast.makeText(this, "Geocoder failed", Toast.LENGTH_LONG).show();
+            return "지오코더 서비스 사용불가";
+        } catch (IllegalArgumentException illegalArgumentException) {
+            Toast.makeText(this, "wrong GPS coordinate", Toast.LENGTH_LONG).show();
+            return "잘못된 GPS 좌표";
+        }
+        if (addresses == null || addresses.size() == 0) {
+            Toast.makeText(this, "address undetected", Toast.LENGTH_LONG).show();
+            return "주소 미발견";
+        }
+        Address address = addresses.get(0);
+        add = address.getAddressLine(0).toString();
+        return add;
+    }
+
+    public void getCurrentCoordinates(String str, String name) {
+        //Geocoder - 주소를 GPS로 변환
+        Geocoder geocoder = new Geocoder(this);
+        try {
+            List<Address> list = geocoder.getFromLocationName(str, 10);
+            for (int i = 0; i < list.size(); i++) {
+                Address address = list.get(i);
+                Double lat = address.getLatitude();
+                Double lng = address.getLongitude();
+                Log.d(TAG, "name = " + name + " lat = " + lat + " lng = " + lng);
+                saveMarkerRestaurant(lat, lng);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     // 브로드캐스트리시버로 서비스에서 업데이트 되는 좌표받아옴
     private class BroadcastReceiver extends android.content.BroadcastReceiver {
         @SuppressLint("SetTextI18n")
@@ -535,10 +460,44 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                    accuracy_tv.setText("정확도 : " + accuracy);
 
                     setMarker(latitude, longitude);
-
                 }
             }
         }
+    }
+
+    // 다이얼로그에 뿌려줄 업데이트 좌표
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public String getAdd() {
+        return add;
+    }
+
+    //    --------------------------------------------------------------------------세팅-------------------------------------------------------------------
+    @SuppressLint("SetTextI18n")
+    private void setPage() {
+        // 텍스트 출력
+//        provider_tv.setText("제공자 : " + (provider != null ? provider : "정보없음"));
+//        add_tv.setText("주소 : " + (latitude != 0 && longitude != 0 ? getCurrentAddress(latitude, longitude) : "정보없음"));
+//        lat_tv.setText("위도 : " + (latitude != 0 ? latitude : "정보없음"));
+//        lng_tv.setText("경도 : " + (longitude != 0 ? longitude : "정보없음"));
+//        accuracy_tv.setText("정확도 : " + (accuracy != 0 ? accuracy : "정보없음"));
+
+        // 지도 띄우기
+        mapView = new MapView(this);
+        mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
+        mapViewContainer.addView(mapView);
+//        loadRestaurant();
+        setCenter();
     }
 
     // 지도 중심 변경 해주기
@@ -547,7 +506,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (longitude != 0 && latitude != 0) {
             mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude), true);
         } else {
-            Toast.makeText(this, "위치정보가 없습니다.", Toast.LENGTH_SHORT);
+            mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(35.1595454, 126.8526012), true);
         }
     }
 
@@ -573,8 +532,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         poiItems.add(marker);
     }
 
-    // 마커 찍어주기
-    private void setMarkerRestaurant(double latitude, double longitude) {
+    private void setDialog() {
+        // 주제 선택 다이얼로그 띄우기
+        Log.d(TAG, "setDialog");
+        String[] items = new String[]{"맛집", "관광지"};
+        final int[] item = {0}; // 선택된 포지션 저장할 변수
+        new AlertDialog.Builder(this).setTitle("알고 싶은 위치를 선택해 주세요.").setSingleChoiceItems(items, 0, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                item[0] = i; // 다이얼로그에서 아이템 선택 시 위치를 저장
+            }
+        }).setPositiveButton("확인", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                String selected = items[item[0]];  // '확인' 버튼을 누르면 선택한 주제를 저장
+                Log.d(TAG, "select = " + selected);
+                select_btn.setText(selected);
+            }
+        }).setNegativeButton("취소", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+            }
+        }).show();
+    }
+
+    // 맛집 마커 위치 저장
+    private void saveMarkerRestaurant(double latitude, double longitude) {
         Log.d(TAG, "setMarkerRestaurant");
         MapPoint mapPoint = MapPoint.mapPointWithGeoCoord(latitude, longitude);
         MapPOIItem marker = new MapPOIItem();
@@ -584,25 +567,48 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         marker.setMarkerType(MapPOIItem.MarkerType.BluePin);  // 마커 모양.
         marker.setSelectedMarkerType(null);  // 마커를 클릭했을때 마커 모양.
 
-        mapView.addPOIItem(marker);
-        poiItems.add(marker);
+        poiItems_restaurant.add(marker);
+        Log.d(TAG, "poiItems_restaurant count = " + String.valueOf(poiItems_restaurant.size()));
     }
 
-    // 다이얼로그에 뿌려줄 업데이트 좌표
-    public double getLatitude() {
-        return latitude;
-    }
+    private void loadRestaurant() {
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
 
-    public double getLongitude() {
-        return longitude;
-    }
+        final String key = BuildConfig.FOOD_API_KEY;
+        final String url = "https://api.odcloud.kr/api/3082925/v1/uddi:eeb6164d-1dd7-4382-8a96-a6888185864a?page=1&perPage=50&serviceKey=" + key;
 
-    public String getProvider() {
-        return provider;
-    }
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d(TAG, response.toString());
+//                get();
+                try {
+                    JSONArray jsonArray = response.getJSONArray("data");
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        String addr = jsonArray.getJSONObject(i).getString("소재지");
+                        String name = jsonArray.getJSONObject(i).getString("상 호");
 
-    public String getAdd() {
-        return add;
+                        // 쓰레드로 진행
+                        Thread thread = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                getCurrentCoordinates(addr, name);
+                            }
+                        });
+                        thread.start();
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d(TAG, error.toString());
+            }
+        });
+        requestQueue.add(request);
     }
 
     // 키해시 값
@@ -619,6 +625,42 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (Exception e) {
             // TODO Auto-generated catch block
             Log.e(TAG, "name not found" + e.toString());
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume");
+        setPage();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "onPause");
+        mapViewContainer.removeView(mapView);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy");
+        if (isGpsServiceRunning(FusedLocationService.class)) {
+            stopLocation();
+            pushLocation();
         }
     }
 }
