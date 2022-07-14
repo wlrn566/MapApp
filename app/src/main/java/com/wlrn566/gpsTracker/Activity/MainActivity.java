@@ -525,12 +525,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     // 아이템 선택 시 마커 찍어주기
     private void setItemMarker(String selected) {
         Log.d(TAG, "setItemMarker");
-        if(selected.equals("맛집")){
-            for(int i=0; i<poiItems_restaurant.size(); i++){
+        if (selected.equals("맛집")) {
+            for (int i = 0; i < poiItems_restaurant.size(); i++) {
                 MapPoint mapPoint = poiItems_restaurant.get(i).getMapPoint();
                 MapPOIItem marker = new MapPOIItem();
-                marker.setItemName("Default Marker");
-                marker.setTag(0);
+                marker.setItemName("Restaurant Marker");
+                marker.setTag(1);
                 marker.setMapPoint(mapPoint);
                 marker.setMarkerType(MapPOIItem.MarkerType.BluePin);  // 마커 모양.
                 marker.setSelectedMarkerType(null);  // 마커를 클릭했을때 마커 모양.
@@ -538,15 +538,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 mapView.addPOIItem(marker);
             }
+        } else if (selected.equals("선택")) {
+
         }
     }
 
     private void showDialog() {
         // 주제 선택 다이얼로그 띄우기
         Log.d(TAG, "setDialog");
-        String[] items = new String[]{"맛집", "관광지"};
+        String[] items = new String[]{"선택", "맛집", "관광지"};
+
         final int[] item = {0}; // 선택된 포지션 저장할 변수
-        new AlertDialog.Builder(this).setTitle("알고 싶은 위치를 선택해 주세요.").setSingleChoiceItems(items, 0, new DialogInterface.OnClickListener() {
+        new AlertDialog.Builder(this).setTitle("알고 싶은 위치를 선택해 주세요.").setSingleChoiceItems(items, -1, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 item[0] = i; // 다이얼로그에서 아이템 선택 시 위치를 저장
@@ -556,7 +559,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onClick(DialogInterface dialogInterface, int i) {
                 String selected = items[item[0]];  // '확인' 버튼을 누르면 선택한 주제를 저장
                 Log.d(TAG, "select = " + selected);
-
                 select_btn.setText(selected);
                 setItemMarker(selected);  // 선택 된 아이템에 맞는 마커 표시해주기
             }
@@ -595,7 +597,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 try {
                     if (response.getString("result_str").equals("success")) {
                         JSONArray jsonArray = response.getJSONArray("restaurant");  // VO 변환할 데이터 추출
-                        Log.d(TAG, "restaurantData count = "+jsonArray.length());
+                        Log.d(TAG, "restaurantData count = " + jsonArray.length());
                         Gson gson = new Gson();
                         for (int i = 0; i < jsonArray.length(); i++) {
                             restaurantVO = gson.fromJson(jsonArray.getString(i), RestaurantVO.class);  // JSON -> Object 변환
