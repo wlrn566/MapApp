@@ -213,9 +213,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.setCenter_btn:
                 Log.d(TAG, "setCenter click");
-//                setCenter();
-                loadRestaurantData();
-
+                setCenter();
                 break;
             case R.id.kakaoMap_btn:
                 Log.d(TAG, "kakaoMap_btn click");
@@ -511,7 +509,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         marker.setMapPoint(mapPoint);
         marker.setMarkerType(MapPOIItem.MarkerType.RedPin);  // 마커 모양.
         marker.setSelectedMarkerType(null);  // 마커를 클릭했을때 마커 모양.
-        marker.setShowCalloutBalloonOnTouch(false);
+        marker.setShowCalloutBalloonOnTouch(false);  // 마커 클릭 유무
 
         Log.d(TAG, "poiItems = " + poiItems);
         if (poiItems.size() > 0) {
@@ -522,6 +520,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         mapView.addPOIItem(marker);
         poiItems.add(marker);
+    }
+
+    // 아이템 선택 시 마커 찍어주기
+    private void setItemMarker(String selected) {
+        Log.d(TAG, "setItemMarker");
+        if(selected.equals("맛집")){
+            for(int i=0; i<poiItems_restaurant.size(); i++){
+                MapPoint mapPoint = poiItems_restaurant.get(i).getMapPoint();
+                MapPOIItem marker = new MapPOIItem();
+                marker.setItemName("Default Marker");
+                marker.setTag(0);
+                marker.setMapPoint(mapPoint);
+                marker.setMarkerType(MapPOIItem.MarkerType.BluePin);  // 마커 모양.
+                marker.setSelectedMarkerType(null);  // 마커를 클릭했을때 마커 모양.
+                marker.setShowCalloutBalloonOnTouch(false);  // 마커 클릭 유무
+
+                mapView.addPOIItem(marker);
+            }
+        }
     }
 
     private void showDialog() {
@@ -541,6 +558,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Log.d(TAG, "select = " + selected);
 
                 select_btn.setText(selected);
+                setItemMarker(selected);  // 선택 된 아이템에 맞는 마커 표시해주기
             }
         }).setNegativeButton("취소", new DialogInterface.OnClickListener() {
             @Override
@@ -564,36 +582,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.d(TAG, "poiItems_restaurant count = " + String.valueOf(poiItems_restaurant.size()));
     }
 
-    // 키해시 값
-    private void getAppKeyHash() {
-        try {
-            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);
-            for (Signature signature : info.signatures) {
-                MessageDigest md;
-                md = MessageDigest.getInstance("SHA");
-                md.update(signature.toByteArray());
-                String something = new String(Base64.encode(md.digest(), 0));
-                Log.d(TAG, "Hash key = " + something);
-            }
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            Log.e(TAG, "name not found" + e.toString());
-        }
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Log.d(TAG, "onStart");
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.d(TAG, "onResume");
-        setPage();
-    }
-
+    // 맛집 데이터 불러오기
     private void loadRestaurantData() {
         RequestQueue requestQueue = Volley.newRequestQueue(this);
 
@@ -602,10 +591,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new com.android.volley.Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                Log.d(TAG, response.toString());
+//                Log.d(TAG, response.toString());
                 try {
                     if (response.getString("result_str").equals("success")) {
                         JSONArray jsonArray = response.getJSONArray("restaurant");  // VO 변환할 데이터 추출
+                        Log.d(TAG, "restaurantData count = "+jsonArray.length());
                         Gson gson = new Gson();
                         for (int i = 0; i < jsonArray.length(); i++) {
                             restaurantVO = gson.fromJson(jsonArray.getString(i), RestaurantVO.class);  // JSON -> Object 변환
@@ -641,6 +631,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //            }
 //        });
 //    }
+
+    // 키해시 값
+    private void getAppKeyHash() {
+        try {
+            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);
+            for (Signature signature : info.signatures) {
+                MessageDigest md;
+                md = MessageDigest.getInstance("SHA");
+                md.update(signature.toByteArray());
+                String something = new String(Base64.encode(md.digest(), 0));
+                Log.d(TAG, "Hash key = " + something);
+            }
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            Log.e(TAG, "name not found" + e.toString());
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume");
+        setPage();
+        loadRestaurantData();
+    }
 
     @Override
     protected void onPause() {
