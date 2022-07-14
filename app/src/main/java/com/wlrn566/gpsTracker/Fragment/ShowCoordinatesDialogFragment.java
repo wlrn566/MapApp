@@ -1,8 +1,11 @@
 package com.wlrn566.gpsTracker.Fragment;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -14,8 +17,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
+import com.wlrn566.gpsTracker.Activity.MainActivity;
 import com.wlrn566.gpsTracker.R;
 
 public class ShowCoordinatesDialogFragment extends DialogFragment {
@@ -28,6 +33,7 @@ public class ShowCoordinatesDialogFragment extends DialogFragment {
 
     private View rootView;
     private TextView provider_tv, add_tv, lat_tv, lng_tv;
+    private Button refresh_btn;
 
     private double latitude, longitude;
     private String provider, add;
@@ -68,9 +74,22 @@ public class ShowCoordinatesDialogFragment extends DialogFragment {
         add_tv = rootView.findViewById(R.id.add_tv);
         lat_tv = rootView.findViewById(R.id.lat_tv);
         lng_tv = rootView.findViewById(R.id.lng_tv);
+        refresh_btn = rootView.findViewById(R.id.refresh_btn);
 
         setPage();
 
+        // 액티비티에서 좌표를 다시 가져와서 새로 뿌려주기
+        refresh_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                provider = ((MainActivity) getActivity()).getProvider();
+                add = ((MainActivity) getActivity()).getAdd();
+                latitude = ((MainActivity) getActivity()).getLatitude();
+                longitude = ((MainActivity) getActivity()).getLongitude();
+//                Log.d(TAG, "provider = " + provider + " add = " + add + " lat = " + latitude + " lng = " + longitude);
+                setPage();
+            }
+        });
         return rootView;
     }
 

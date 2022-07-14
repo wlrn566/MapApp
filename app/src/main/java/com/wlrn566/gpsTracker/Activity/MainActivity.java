@@ -42,6 +42,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.wlrn566.gpsTracker.BuildConfig;
 import com.wlrn566.gpsTracker.Fragment.ShowCoordinatesDialogFragment;
 import com.wlrn566.gpsTracker.Service.FusedLocationService;
 import com.wlrn566.gpsTracker.R;
@@ -74,8 +75,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String provider, add;
     private float accuracy;
 
-    private TextView provider_tv, add_tv, lat_tv, lng_tv, accuracy_tv;
-    private Button show, gps_btn, setCenter_btn, btn;
+//    private TextView provider_tv, add_tv, lat_tv, lng_tv, accuracy_tv;
+    private Button show, gps_btn, setCenter_btn, kakaoMap_btn;
     private MapView mapView;
     private ViewGroup mapViewContainer;
     private Spinner spn;
@@ -133,21 +134,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //            Log.d(TAG, "getIntent is null");
 //        }
 
-        provider_tv = findViewById(R.id.provider_tv);
-        add_tv = findViewById(R.id.add_tv);
-        lat_tv = findViewById(R.id.lat_tv);
-        lng_tv = findViewById(R.id.lng_tv);
-        accuracy_tv = findViewById(R.id.accuracy_tv);
+//        provider_tv = findViewById(R.id.provider_tv);
+//        add_tv = findViewById(R.id.add_tv);
+//        lat_tv = findViewById(R.id.lat_tv);
+//        lng_tv = findViewById(R.id.lng_tv);
+//        accuracy_tv = findViewById(R.id.accuracy_tv);
         show = findViewById(R.id.show);
         gps_btn = findViewById(R.id.gps_btn);
         setCenter_btn = findViewById(R.id.setCenter_btn);
-        btn = findViewById(R.id.btn);
+        kakaoMap_btn = findViewById(R.id.kakaoMap_btn);
         spn = findViewById(R.id.spn);
 
         show.setOnClickListener(this);
         gps_btn.setOnClickListener(this);
         setCenter_btn.setOnClickListener(this);
-        btn.setOnClickListener(this);
+        kakaoMap_btn.setOnClickListener(this);
 
         if (isGpsServiceRunning(FusedLocationService.class)) {  // 앱 들어왔을 때
             gps_btn.setText("ON");
@@ -160,17 +161,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @SuppressLint("SetTextI18n")
     private void setPage() {
         // 텍스트 출력
-        provider_tv.setText("제공자 : " + (provider != null ? provider : "정보없음"));
-        add_tv.setText("주소 : " + (latitude != 0 && longitude != 0 ? getCurrentAddress(latitude, longitude) : "정보없음"));
-        lat_tv.setText("위도 : " + (latitude != 0 ? latitude : "정보없음"));
-        lng_tv.setText("경도 : " + (longitude != 0 ? longitude : "정보없음"));
-        accuracy_tv.setText("정확도 : " + (accuracy != 0 ? accuracy : "정보없음"));
+//        provider_tv.setText("제공자 : " + (provider != null ? provider : "정보없음"));
+//        add_tv.setText("주소 : " + (latitude != 0 && longitude != 0 ? getCurrentAddress(latitude, longitude) : "정보없음"));
+//        lat_tv.setText("위도 : " + (latitude != 0 ? latitude : "정보없음"));
+//        lng_tv.setText("경도 : " + (longitude != 0 ? longitude : "정보없음"));
+//        accuracy_tv.setText("정확도 : " + (accuracy != 0 ? accuracy : "정보없음"));
 
         // 지도 띄우기
         mapView = new MapView(this);
         mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
         mapViewContainer.addView(mapView);
-        loadRestaurant();
+//        loadRestaurant();
 
         setCenter();
     }
@@ -326,11 +327,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Log.d(TAG, "setCenter click");
                 setCenter();
                 break;
-            case R.id.btn:
+            case R.id.kakaoMap_btn:
                 Log.d(TAG, "btn click");
-//                Uri url = Uri.parse("kakaomap://look?p=" + latitude + "," + longitude);
-//                Intent intent = new Intent(Intent.ACTION_VIEW, url);
-//                startActivity(intent);
+                Uri url = Uri.parse("kakaomap://look?p=" + latitude + "," + longitude);
+                Intent intent = new Intent(Intent.ACTION_VIEW, url);
+                startActivity(intent);
                 break;
             default:
                 break;
@@ -341,7 +342,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         RequestQueue requestQueue = Volley.newRequestQueue(this);
 
-        final String url = "https://api.odcloud.kr/api/3082925/v1/uddi:eeb6164d-1dd7-4382-8a96-a6888185864a?page=1&perPage=10&serviceKey=XbqmauXLITvcnwRs5mZPbD3jxLvQfpy25GhcVpx78ocFlUwc6qiZ0yIdQugg0t0t8VwtvjC2ZEhRvLLPCUR8%2FQ%3D%3D";
+        final String key = BuildConfig.FOOD_API_KEY;
+        final String url = "https://api.odcloud.kr/api/3082925/v1/uddi:eeb6164d-1dd7-4382-8a96-a6888185864a?page=1&perPage=10&serviceKey=" + key;
 
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
@@ -512,7 +514,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
 
-    // 브로드캐스트리시버로 서비스에서 업데이트 되는 좌표를 UI에 뿌려줌
+    // 브로드캐스트리시버로 서비스에서 업데이트 되는 좌표받아옴
     private class BroadcastReceiver extends android.content.BroadcastReceiver {
         @SuppressLint("SetTextI18n")
         @Override
@@ -521,17 +523,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Log.d(TAG, "broadcastReceiver success");
                 if (intent.getAction().equals("update")) {
                     provider = intent.getStringExtra("provider");
+                    add = getCurrentAddress(latitude, longitude);
                     latitude = intent.getDoubleExtra("latitude", 0);
                     longitude = intent.getDoubleExtra("longitude", 0);
                     accuracy = intent.getFloatExtra("accuracy", 0);
 
-                    provider_tv.setText("제공자 : " + provider);
-                    add_tv.setText("주소 : " + getCurrentAddress(latitude, longitude));
-                    lat_tv.setText("위도 : " + latitude);
-                    lng_tv.setText("경도 : " + longitude);
-                    accuracy_tv.setText("정확도 : " + accuracy);
+//                    provider_tv.setText("제공자 : " + provider);
+//                    add_tv.setText("주소 : " + add);
+//                    lat_tv.setText("위도 : " + latitude);
+//                    lng_tv.setText("경도 : " + longitude);
+//                    accuracy_tv.setText("정확도 : " + accuracy);
 
                     setMarker(latitude, longitude);
+
                 }
             }
         }
@@ -582,6 +586,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mapView.addPOIItem(marker);
         poiItems.add(marker);
+    }
+
+    // 다이얼로그에 뿌려줄 업데이트 좌표
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public String getAdd() {
+        return add;
     }
 
     // 키해시 값
