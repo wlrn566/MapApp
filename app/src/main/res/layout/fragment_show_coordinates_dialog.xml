@@ -4,15 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
     tools:context=".Fragment.ShowCoordinatesDialogFragment">
-
-    <Button
-        android:id="@+id/refresh_btn"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        app:layout_constraintBottom_toTopOf="@+id/current_tv"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
 
     <TextView
@@ -20,17 +15,33 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="현재 내 위치"
+        android:textColor="#000000"
+        android:textSize="20sp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/refresh_btn" />
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/refresh_btn"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginRight="5dp"
+        android:layout_marginTop="5dp"
+        android:background="@drawable/ic_refresh_dialog"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/provider_tv"
         android:layout_width="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
         android:layout_height="wrap_content"
         android:text="제공자"
+        android:textColor="#000000"
+        android:textSize="15sp"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/current_tv" />
 
     <TextView
@@ -38,8 +49,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="주소"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:textColor="#000000"
+        android:textSize="15sp"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/provider_tv" />
 
     <TextView
@@ -47,17 +62,25 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="위도"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:textColor="#000000"
+        android:textSize="15sp"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/add_tv" />
 
     <TextView
         android:id="@+id/lng_tv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
         android:text="경도"
+        android:textColor="#000000"
+        android:textSize="15sp"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/lat_tv" />
 
 

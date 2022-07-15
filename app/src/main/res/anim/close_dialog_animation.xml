@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@android:anim/accelerate_interpolator">
+    <translate
+        android:fromYDelta="0%"
+        android:toYDelta= "100%"
+        android:duration="200"/>
+    <!-- duration : 애니메이션 진행 시간
+         fromYDelta : Y의 시작위치
+         toYDelta : Y의 끝위치 -->
+</set>

@@ -86,7 +86,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private long backPressedTime = 0;
     private String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION
             , Manifest.permission.ACCESS_COARSE_LOCATION};
-    private ArrayList<MapPOIItem> poiItems = new ArrayList<>();
     private ArrayList<MapPOIItem> poiItems_restaurant = new ArrayList<>();
     private static final int GPS_ENABLE_REQUEST_CODE = 2001, PERMISSIONS_REQUEST_CODE = 100;
     private double latitude, longitude;
@@ -152,11 +151,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //            Log.d(TAG, "getIntent is null");
 //        }
 
-//        provider_tv = findViewById(R.id.provider_tv);
-//        add_tv = findViewById(R.id.add_tv);
-//        lat_tv = findViewById(R.id.lat_tv);
-//        lng_tv = findViewById(R.id.lng_tv);
-//        accuracy_tv = findViewById(R.id.accuracy_tv);
         show = findViewById(R.id.show);
         gps_btn = findViewById(R.id.gps_btn);
         setCenter_btn = findViewById(R.id.setCenter_btn);
@@ -380,12 +374,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // 리시버 등록해제
         if (mBroadcastReceiver != null) {
+            Log.d(TAG, "unregisterReceiver");
             unregisterReceiver(mBroadcastReceiver);
-        }
-        if (poiItems.size() > 0) {
-            for (int i = 0; i < poiItems.size(); i++) {
-                mapView.removePOIItem(poiItems.get(i));
-                poiItems.remove(poiItems.get(i));
+
+            MapPOIItem[] marker_before = mapView.findPOIItemByName("Gps Marker");
+            if (marker_before != null) {
+                Log.d(TAG, "Gps Marker remove");
+                mapView.removePOIItems(marker_before);
             }
         }
     }
@@ -442,12 +437,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     longitude = intent.getDoubleExtra("longitude", 0);
                     accuracy = intent.getFloatExtra("accuracy", 0);
 
-//                    provider_tv.setText("제공자 : " + provider);
-//                    add_tv.setText("주소 : " + add);
-//                    lat_tv.setText("위도 : " + latitude);
-//                    lng_tv.setText("경도 : " + longitude);
-//                    accuracy_tv.setText("정확도 : " + accuracy);
-
                     setMarker(latitude, longitude);
                 }
             }
@@ -474,18 +463,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //    --------------------------------------------------------------------------세팅-------------------------------------------------------------------
     @SuppressLint("SetTextI18n")
     private void setPage() {
-        // 텍스트 출력
-//        provider_tv.setText("제공자 : " + (provider != null ? provider : "정보없음"));
-//        add_tv.setText("주소 : " + (latitude != 0 && longitude != 0 ? getCurrentAddress(latitude, longitude) : "정보없음"));
-//        lat_tv.setText("위도 : " + (latitude != 0 ? latitude : "정보없음"));
-//        lng_tv.setText("경도 : " + (longitude != 0 ? longitude : "정보없음"));
-//        accuracy_tv.setText("정확도 : " + (accuracy != 0 ? accuracy : "정보없음"));
-
+        Log.d(TAG, "setPage");
         // 지도 띄우기
         mapView = new MapView(this);
         mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
         mapViewContainer.addView(mapView);
-//        loadRestaurant();
         setCenter();
     }
 
@@ -493,9 +475,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void setCenter() {
         Log.d(TAG, "setCenter");
         if (longitude != 0 && latitude != 0) {
-            mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude), true);
+            mapView.setMapCenterPointAndZoomLevel(MapPoint.mapPointWithGeoCoord(latitude, longitude), 3, true);
         } else {
-            mapView.setMapCenterPoint(MapPoint.mapPointWithGeoCoord(35.1595454, 126.8526012), true);
+            mapView.setMapCenterPointAndZoomLevel(MapPoint.mapPointWithGeoCoord(35.1595454, 126.8526012), 5, true);
         }
     }
 
@@ -504,47 +486,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.d(TAG, "setMarker");
         MapPoint mapPoint = MapPoint.mapPointWithGeoCoord(latitude, longitude);
         MapPOIItem marker = new MapPOIItem();
-        marker.setItemName("Default Marker");
+        marker.setItemName("Gps Marker");
         marker.setTag(0);
         marker.setMapPoint(mapPoint);
         marker.setMarkerType(MapPOIItem.MarkerType.RedPin);  // 마커 모양.
         marker.setSelectedMarkerType(null);  // 마커를 클릭했을때 마커 모양.
         marker.setShowCalloutBalloonOnTouch(false);  // 마커 클릭 유무
 
-        Log.d(TAG, "poiItems = " + poiItems);
-        if (poiItems.size() > 0) {
-            for (int i = 0; i < poiItems.size(); i++) {
-                mapView.removePOIItem(poiItems.get(i));
-                poiItems.remove(poiItems.get(i));
-            }
+        MapPOIItem[] marker_before = mapView.findPOIItemByName("Gps Marker");
+        if (marker_before != null) {
+            mapView.removePOIItems(marker_before);
         }
         mapView.addPOIItem(marker);
-        poiItems.add(marker);
+//        poiItems.add(marker);
     }
 
-    // 아이템 선택 시 마커 찍어주기
+    // 아이템 선택 시 저장한 마커 찍어주기
     private void setItemMarker(String selected) {
         Log.d(TAG, "setItemMarker");
         if (selected.equals("맛집")) {
             for (int i = 0; i < poiItems_restaurant.size(); i++) {
-                MapPoint mapPoint = poiItems_restaurant.get(i).getMapPoint();
-                MapPOIItem marker = new MapPOIItem();
-                marker.setItemName("Restaurant Marker");
-                marker.setTag(1);
-                marker.setMapPoint(mapPoint);
-                marker.setMarkerType(MapPOIItem.MarkerType.BluePin);  // 마커 모양.
-                marker.setSelectedMarkerType(null);  // 마커를 클릭했을때 마커 모양.
-                marker.setShowCalloutBalloonOnTouch(false);  // 마커 클릭 유무
-
-                mapView.addPOIItem(marker);
+                mapView.addPOIItem(poiItems_restaurant.get(i));
             }
+        } else if (selected.equals("관광지")) {
+            Toast.makeText(this, "준비중입니다...", Toast.LENGTH_SHORT).show();
         } else if (selected.equals("선택")) {
-
+            MapPOIItem[] mapPOIItems = mapView.findPOIItemByName("Restaurant Marker");
+            if (mapPOIItems != null) {
+                Log.d(TAG, "Restaurant Marker count = " + mapPOIItems.length);
+                mapView.removePOIItems(mapPOIItems);
+            }
         }
     }
 
+    // 주제 선택 다이얼로그 띄우기
     private void showDialog() {
-        // 주제 선택 다이얼로그 띄우기
         Log.d(TAG, "setDialog");
         String[] items = new String[]{"선택", "맛집", "관광지"};
 
@@ -574,7 +550,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.d(TAG, "setMarkerRestaurant");
         MapPoint mapPoint = MapPoint.mapPointWithGeoCoord(latitude, longitude);
         MapPOIItem marker = new MapPOIItem();
-        marker.setItemName("Default Marker");
+        marker.setItemName("Restaurant Marker");
         marker.setTag(0);
         marker.setMapPoint(mapPoint);
         marker.setMarkerType(MapPOIItem.MarkerType.BluePin);  // 마커 모양.

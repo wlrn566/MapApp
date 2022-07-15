@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -14,9 +16,12 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -54,7 +59,6 @@ public class ShowCoordinatesDialogFragment extends DialogFragment {
             latitude = getArguments().getDouble("lat");
             longitude = getArguments().getDouble("lng");
         }
-
     }
 
     @NonNull
@@ -104,6 +108,19 @@ public class ShowCoordinatesDialogFragment extends DialogFragment {
     public void onStart() {
         Log.d(TAG, "onStart");
         super.onStart();
+
+        // 다이얼로그 애니메이션 설정
+        setCancelable(true); // 밖을 터치했을 때 나갈 수 있게끔
+        Window window = getDialog().getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT)); // 배경을 투명
+            WindowManager.LayoutParams params = window.getAttributes();
+            params.width = WindowManager.LayoutParams.MATCH_PARENT; // 다이얼로그 크기 (화면 가득)
+            params.height = WindowManager.LayoutParams.WRAP_CONTENT; // 다이얼로그 높이 (화면 가득)
+            params.windowAnimations = R.style.AnimationPopupStyle; // 열기 애니메이션
+            window.setAttributes(params); // 설정들을 세팅
+            window.setGravity(Gravity.BOTTOM); // UI 하단에 세팅
+        }
     }
 
     @Override
